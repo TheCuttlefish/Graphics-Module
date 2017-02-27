@@ -17,6 +17,9 @@ class CSphere;
 class COpenAssetImportMesh;
 class CAudio;
 class CCatmullRom;
+class CCube;
+
+
 
 class Game {
 private:
@@ -43,6 +46,8 @@ private:
 	CHighResolutionTimer *m_pHighResolutionTimer;
 	CAudio *m_pAudio;
 	CCatmullRom *m_pCatmullRom;
+	//--adding cube pointer
+	CCube *m_pCube;
 
 	// Some other member variables
 	double m_dt;

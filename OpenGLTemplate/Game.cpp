@@ -36,7 +36,7 @@ Source code drawn from a number of sources and examples, including contributions
 #include "MatrixStack.h"
 #include "OpenAssetImportMesh.h"
 #include "Audio.h"
-
+#include "Cube.h"//added my cube(plane)
 glm::vec3 p0 = glm::vec3(-500, 10, -200);
 glm::vec3 p1 = glm::vec3(0, 10, -200);
 glm::vec3 p2 = glm::vec3(0, 10, 200);
@@ -59,6 +59,8 @@ Game::Game()
 	m_pCave = NULL;
 
 	m_pSphere = NULL;
+	m_pCube = NULL;
+
 	m_pHighResolutionTimer = NULL;
 	m_pAudio = NULL;
 	m_pCatmullRom = NULL;
@@ -86,6 +88,8 @@ Game::~Game()
 	delete m_pCave;
 
 	delete m_pSphere;
+	delete m_pCube;
+
 	delete m_pAudio;
 	delete m_pCatmullRom;
 
@@ -123,6 +127,8 @@ void Game::Initialise()
 
 
 	m_pSphere = new CSphere;
+	m_pCube = new CCube;
+
 	m_pAudio = new CAudio;
 
 
@@ -145,7 +151,8 @@ void Game::Initialise()
 	//my shader ( order is important!)
 	sShaderFileNames.push_back("jellyShader.vert");
 	sShaderFileNames.push_back("jellyShader.frag");
-
+	sShaderFileNames.push_back("toonShader.vert");
+	sShaderFileNames.push_back("toonShader.frag");
 	for (int i = 0; i < (int) sShaderFileNames.size(); i++) {
 		string sExt = sShaderFileNames[i].substr((int) sShaderFileNames[i].size()-4, 4);
 		int iShaderType;
@@ -183,6 +190,14 @@ void Game::Initialise()
 	pJellyProgram->LinkProgram();
 	m_pShaderPrograms->push_back(pJellyProgram);
 
+	//Adding my toon shader!
+	CShaderProgram *pToonProgram = new CShaderProgram;
+	pToonProgram->CreateProgram();
+	pToonProgram->AddShaderToProgram(&shShaders[6]);
+	pToonProgram->AddShaderToProgram(&shShaders[7]);
+	pToonProgram->LinkProgram();
+	m_pShaderPrograms->push_back(pToonProgram);
+
 	// You can follow this pattern to load additional shaders
 
 	// Create the skybox
@@ -206,7 +221,10 @@ void Game::Initialise()
 
 	// Create a sphere
 	m_pSphere->Create("resources\\textures\\", "dirtpile01.jpg", 25, 25);  // Texture downloaded from http://www.psionicgames.com/?page_id=26 on 24 Jan 2013
-	glEnable(GL_CULL_FACE);
+	//glEnable(GL_CULL_FACE);
+
+	// my cube
+	m_pCube->Create("resources\\textures\\seafloor2.png");
 
 	// Initialise audio and play background music
 	m_pAudio->Initialise();
@@ -221,6 +239,9 @@ void Game::Initialise()
 
 
 }
+
+
+
 
 
 
@@ -279,6 +300,7 @@ void Game::Render()
 		pMainProgram->SetUniform("renderSkybox", true);
 		// Translate the modelview matrix to the camera eye point so skybox stays centred around camera
 		glm::vec3 vEye = m_pCamera->GetPosition();
+		//I moved skybox up! + 500
 		modelViewMatrixStack.Translate(vEye+glm::vec3(0,500,0));
 		pMainProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
 		pMainProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
@@ -336,40 +358,6 @@ void Game::Render()
 
 
 
-	// rocks
-
-
-
-	modelViewMatrixStack.Push();
-	modelViewMatrixStack.Translate(glm::vec3(80.0f, 0.0f, 200.0f));
-	modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 180.0f);
-	modelViewMatrixStack.Scale(3.2f);
-	pMainProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
-	pMainProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
-	m_pRocks->Render();
-	modelViewMatrixStack.Pop();
-
-
-	modelViewMatrixStack.Push();
-	modelViewMatrixStack.Translate(glm::vec3(80.0f, 0.0f, -100.0f));
-	modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 60.0f);
-	modelViewMatrixStack.Scale(2.2f);
-	pMainProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
-	pMainProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
-	m_pRocks->Render();
-	modelViewMatrixStack.Pop();
-
-
-	//render my cave
-	modelViewMatrixStack.Push();
-	modelViewMatrixStack.Translate(glm::vec3(80.0f, 0.0f, 100.0f));
-	modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 60.0f);
-	modelViewMatrixStack.Scale(1.0f);
-	pMainProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
-	pMainProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
-	m_pCave->Render();
-	modelViewMatrixStack.Pop();
-
 
 
 
@@ -398,6 +386,51 @@ void Game::Render()
 		m_pSphere->Render();
 	modelViewMatrixStack.Pop();
 
+	//cube
+
+	// Render the cube
+	modelViewMatrixStack.Push();
+		modelViewMatrixStack.Translate(glm::vec3(0.0f, 50.0f, 0.0f));
+		modelViewMatrixStack.Scale(5.0f);
+		pMainProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
+		pMainProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
+		m_pCube->Render();
+	modelViewMatrixStack.Pop();
+
+	modelViewMatrixStack.Push();
+	modelViewMatrixStack.Translate(glm::vec3(300.0f, 50.0f, 0.0f));
+	modelViewMatrixStack.Scale(5.0f);
+	pMainProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
+	pMainProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
+	m_pCube->Render();
+	modelViewMatrixStack.Pop();
+	
+	modelViewMatrixStack.Push();
+	modelViewMatrixStack.Translate(glm::vec3(-300.0f, 50.0f, 0.0f));
+	modelViewMatrixStack.Scale(5.0f);
+	pMainProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
+	pMainProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
+	m_pCube->Render();
+	modelViewMatrixStack.Pop();
+
+	modelViewMatrixStack.Push();
+	modelViewMatrixStack.Translate(glm::vec3(0.0f, 50.0f, 300.0f));
+	modelViewMatrixStack.Scale(5.0f);
+	pMainProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
+	pMainProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
+	m_pCube->Render();
+	modelViewMatrixStack.Pop();
+
+	modelViewMatrixStack.Push();
+	modelViewMatrixStack.Translate(glm::vec3(0.0f, 50.0f, -300.0f));
+	modelViewMatrixStack.Scale(5.0f);
+	pMainProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
+	pMainProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
+	m_pCube->Render();
+	modelViewMatrixStack.Pop();
+	
+	//catmull rom
+
 	modelViewMatrixStack.Push();
 	pMainProgram->SetUniform("bUseTexture", false); // turn off texturing 
 	pMainProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
@@ -407,7 +440,55 @@ void Game::Render()
 	modelViewMatrixStack.Pop();
 
 	//render my objects!
-	
+	CShaderProgram *pToonProgram = (*m_pShaderPrograms)[3];
+	pToonProgram->UseProgram();
+	pToonProgram->SetUniform("_t", m_time);
+	pToonProgram->SetUniform("bUseTexture", true);
+	pToonProgram->SetUniform("sampler0", 0);
+	pToonProgram->SetUniform("CubeMapTex", cubeMapTextureUnit);
+	pToonProgram->SetUniform("matrices.projMatrix", m_pCamera->GetPerspectiveProjectionMatrix());
+	pToonProgram->SetUniform("light1.position", viewMatrix*lightPosition1); // Position of light source *in eye coordinates*
+	pToonProgram->SetUniform("light1.La", glm::vec3(1.0f));		// Ambient colour of light
+	pToonProgram->SetUniform("light1.Ld", glm::vec3(1.0f));		// Diffuse colour of light
+	pToonProgram->SetUniform("light1.Ls", glm::vec3(1.0f));		// Specular colour of light
+	pToonProgram->SetUniform("material1.Ma", glm::vec3(1.0f));	// Ambient material reflectance
+	pToonProgram->SetUniform("material1.Md", glm::vec3(0.0f));	// Diffuse material reflectance
+	pToonProgram->SetUniform("material1.Ms", glm::vec3(0.0f));	// Specular material reflectance
+	pToonProgram->SetUniform("material1.shininess", 15.0f);		// Shininess material property
+
+
+	//cave
+	modelViewMatrixStack.Push();
+		modelViewMatrixStack.Translate(glm::vec3(80.0f, 0.0f, 100.0f));
+		modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 60.0f);
+		modelViewMatrixStack.Scale(1.0f);
+		pToonProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
+		pToonProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
+		m_pCave->Render();
+	modelViewMatrixStack.Pop();
+
+	// rocks
+	modelViewMatrixStack.Push();
+		modelViewMatrixStack.Translate(glm::vec3(80.0f, 0.0f, 200.0f));
+		modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 180.0f);
+		modelViewMatrixStack.Scale(3.2f);
+		pToonProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
+		pToonProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
+		m_pRocks->Render();
+	modelViewMatrixStack.Pop();
+
+
+	modelViewMatrixStack.Push();
+		modelViewMatrixStack.Translate(glm::vec3(80.0f, 0.0f, -100.0f));
+		modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 60.0f);
+		modelViewMatrixStack.Scale(2.2f);
+		pToonProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
+		pToonProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
+		m_pRocks->Render();
+	modelViewMatrixStack.Pop();
+
+
+
 
 	//glCullFace(GL_FRONT_AND_BACK);
 
@@ -527,7 +608,9 @@ void Game::Render()
 
 }
 //zhan code 
-//points
+
+
+
 
 
 
