@@ -53,12 +53,14 @@ private:
 	CTetrahedron *m_pTetrahedron;
 	CIcosahedron *m_pIcosahedron;
 
+	
 	// Some other member variables
 	double m_dt;
 	int m_framesPerSecond;
 	bool m_appActive;
 	//my time
 	float m_time;
+	float m_currentDistance;
 
 public:
 	Game();
