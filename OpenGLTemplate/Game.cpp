@@ -36,7 +36,10 @@ Source code drawn from a number of sources and examples, including contributions
 #include "MatrixStack.h"
 #include "OpenAssetImportMesh.h"
 #include "Audio.h"
-#include "Cube.h"//added my cube(plane)
+#include "Cube.h"//added my cube
+#include "Tetrahedron.h"//added my tetrahedron
+#include "Icosahedron.h"// Icosahedron
+
 glm::vec3 p0 = glm::vec3(-500, 10, -200);
 glm::vec3 p1 = glm::vec3(0, 10, -200);
 glm::vec3 p2 = glm::vec3(0, 10, 200);
@@ -60,6 +63,8 @@ Game::Game()
 
 	m_pSphere = NULL;
 	m_pCube = NULL;
+	m_pTetrahedron = NULL;
+	m_pIcosahedron = NULL;
 
 	m_pHighResolutionTimer = NULL;
 	m_pAudio = NULL;
@@ -89,6 +94,8 @@ Game::~Game()
 
 	delete m_pSphere;
 	delete m_pCube;
+	delete m_pTetrahedron;
+	delete m_pIcosahedron;
 
 	delete m_pAudio;
 	delete m_pCatmullRom;
@@ -128,6 +135,8 @@ void Game::Initialise()
 
 	m_pSphere = new CSphere;
 	m_pCube = new CCube;
+	m_pTetrahedron = new CTetrahedron;
+	m_pIcosahedron = new CIcosahedron;
 
 	m_pAudio = new CAudio;
 
@@ -221,11 +230,21 @@ void Game::Initialise()
 
 	// Create a sphere
 	m_pSphere->Create("resources\\textures\\", "dirtpile01.jpg", 25, 25);  // Texture downloaded from http://www.psionicgames.com/?page_id=26 on 24 Jan 2013
-	//glEnable(GL_CULL_FACE);
+	
 
 	// my cube
 	m_pCube->Create("resources\\textures\\seafloor2.png");
 
+	// my Tetrahedron
+	m_pTetrahedron->Create("resources\\textures\\seafloor2.png");
+
+	//my Icosahedron
+	m_pIcosahedron->Create("resources\\textures\\seafloor2.png");
+
+
+
+
+	glEnable(GL_CULL_FACE);
 	// Initialise audio and play background music
 	m_pAudio->Initialise();
 	m_pAudio->LoadEventSound("Resources\\Audio\\Boing.wav");					// Royalty free sound from freesound.org
@@ -376,12 +395,12 @@ void Game::Render()
 
 	// Render the sphere
 	modelViewMatrixStack.Push();
-		modelViewMatrixStack.Translate(glm::vec3(0.0f, 2.0f, 150.0f));
+		modelViewMatrixStack.Translate(glm::vec3(0.0f, 40.0f, 10.0f));
 		modelViewMatrixStack.Scale(2.0f);
 		pMainProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
 		pMainProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
 		// To turn off texture mapping and use the sphere colour only (currently white material), uncomment the next line
-		//pMainProgram->SetUniform("bUseTexture", false);
+		pMainProgram->SetUniform("bUseTexture", false);
 
 		m_pSphere->Render();
 	modelViewMatrixStack.Pop();
@@ -394,11 +413,12 @@ void Game::Render()
 		modelViewMatrixStack.Scale(5.0f);
 		pMainProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
 		pMainProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
+		pMainProgram->SetUniform("bUseTexture", false);
 		m_pCube->Render();
 	modelViewMatrixStack.Pop();
 
 	modelViewMatrixStack.Push();
-	modelViewMatrixStack.Translate(glm::vec3(300.0f, 50.0f, 0.0f));
+	modelViewMatrixStack.Translate(glm::vec3(100.0f, 50.0f, 0.0f));
 	modelViewMatrixStack.Scale(5.0f);
 	pMainProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
 	pMainProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
@@ -422,11 +442,33 @@ void Game::Render()
 	modelViewMatrixStack.Pop();
 
 	modelViewMatrixStack.Push();
-	modelViewMatrixStack.Translate(glm::vec3(0.0f, 50.0f, -300.0f));
+	modelViewMatrixStack.Translate(glm::vec3(0.0f, 50.0f, -600.0f));
 	modelViewMatrixStack.Scale(5.0f);
 	pMainProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
 	pMainProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
 	m_pCube->Render();
+	modelViewMatrixStack.Pop();
+
+	//ICOSAHEDRON
+	modelViewMatrixStack.Push();
+	modelViewMatrixStack.Translate(glm::vec3(0.0f, 70.0f, 0.0f));
+	modelViewMatrixStack.Scale(5.0f);
+	pMainProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
+	pMainProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
+	//pMainProgram->SetUniform("bUseTexture", true);//off
+	m_pIcosahedron->Render();
+	modelViewMatrixStack.Pop();
+
+
+
+	//TERTRAHEDRON
+	modelViewMatrixStack.Push();
+		modelViewMatrixStack.Translate(glm::vec3(0.0f, 60.0f, 0.0f));
+		modelViewMatrixStack.Scale(5.0f);
+		pMainProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
+		pMainProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
+		//pMainProgram->SetUniform("bUseTexture", false);//off
+		m_pTetrahedron->Render();
 	modelViewMatrixStack.Pop();
 	
 	//catmull rom
@@ -436,6 +478,7 @@ void Game::Render()
 	pMainProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
 	pMainProgram->SetUniform("matrices.normalMatrix",
 		m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
+
 		m_pCatmullRom->RenderPath();
 	modelViewMatrixStack.Pop();
 

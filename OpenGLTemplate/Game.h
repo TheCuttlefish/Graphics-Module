@@ -18,6 +18,8 @@ class COpenAssetImportMesh;
 class CAudio;
 class CCatmullRom;
 class CCube;
+class CTetrahedron;
+class CIcosahedron;
 
 
 
@@ -48,6 +50,8 @@ private:
 	CCatmullRom *m_pCatmullRom;
 	//--adding cube pointer
 	CCube *m_pCube;
+	CTetrahedron *m_pTetrahedron;
+	CIcosahedron *m_pIcosahedron;
 
 	// Some other member variables
 	double m_dt;

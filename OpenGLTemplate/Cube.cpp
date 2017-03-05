@@ -42,37 +42,84 @@ void CCube::Create(string filename)
 
 	// Vertex positions
 
+	/*
+	//wrong bindings
+	glm::vec3(-1, -1, -1),//0
+		glm::vec3(1, -1, -1),//1
+		glm::vec3(-1, 1, -1),//2
+		glm::vec3(1, 1, -1),//3
+
+		glm::vec3(-1, -1, 1),//4
+		glm::vec3(1, -1, 1),//5
+		glm::vec3(-1, 1, 1),//6
+		glm::vec3(1, 1, 1),//7
+
+		glm::vec3(1, -1, 1),//5
+		glm::vec3(1, -1, -1),//1
+		glm::vec3(1, 1, 1),//7
+		glm::vec3(1, 1, -1),//3
+
+		glm::vec3(-1, -1, 1),//4
+		glm::vec3(-1, -1, -1),//0
+		glm::vec3(-1, 1, 1),//6
+		glm::vec3(-1, 1, -1),//2
+
+		glm::vec3(1, 1, 1),//7
+		glm::vec3(1, 1, -1),//3
+		glm::vec3(-1, 1, 1),//6
+		glm::vec3(-1, 1, -1),//2
+
+		glm::vec3(1, -1, 1),//5
+		glm::vec3(1, -1, -1),//1
+		glm::vec3(-1, -1, 1),//4
+		glm::vec3(-1, -1, -1),//0
+	
+	*/
+
+	/*
+	*/
+	
+
 	glm::vec3 planeVertices[24] =
 	{
-		glm::vec3(-1, -1, -1),//0
-		glm::vec3(1, -1, -1),//1
-		glm::vec3(-1, 1, -1),//2
-		glm::vec3(1, 1, -1),//3
 
+		
+		//-z
+		glm::vec3(1, -1, -1),//1
+		glm::vec3(-1, -1, -1),//0
+		glm::vec3(1, 1, -1),//3
+		glm::vec3(-1, 1, -1),//2
+
+		//+z
 		glm::vec3(-1, -1, 1),//4
 		glm::vec3(1, -1, 1),//5
 		glm::vec3(-1, 1, 1),//6
 		glm::vec3(1, 1, 1),//7
 
+		//+x
 		glm::vec3(1, -1, 1),//5
 		glm::vec3(1, -1, -1),//1
 		glm::vec3(1, 1, 1),//7
 		glm::vec3(1, 1, -1),//3
 
-		glm::vec3(-1, -1, 1),//4
+		//-x
 		glm::vec3(-1, -1, -1),//0
-		glm::vec3(-1, 1, 1),//6
+		glm::vec3(-1, -1, 1),//4
 		glm::vec3(-1, 1, -1),//2
+		glm::vec3(-1, 1, 1),//6
 
+		//+y
 		glm::vec3(1, 1, 1),//7
 		glm::vec3(1, 1, -1),//3
 		glm::vec3(-1, 1, 1),//6
 		glm::vec3(-1, 1, -1),//2
 
-		glm::vec3(1, -1, 1),//5
+		//-y
 		glm::vec3(1, -1, -1),//1
-		glm::vec3(-1, -1, 1),//4
+		glm::vec3(1, -1, 1),//5
 		glm::vec3(-1, -1, -1),//0
+		glm::vec3(-1, -1, 1),//4
+		
 	};
 
 	// Texture coordinates
@@ -85,15 +132,34 @@ void CCube::Create(string filename)
 
 	};
 
+
+
+
+	glm::vec3 planeNormals[6] =
+	{
+		//z
+		glm::vec3(0, 0, -1),
+		glm::vec3(0, 0, 1),
+		//x
+		glm::vec3(1, 0, 0),
+		glm::vec3(-1, 0, 0),
+		//y
+		glm::vec3(0, 1, 0),
+		glm::vec3(0, -1, 0),
+
+	};
+
 	// Plane normal
-	glm::vec3 planeNormal = glm::vec3(0.0f, 1.0f, 0.0f);
+	//glm::vec3 planeNormal = glm::vec3(0.0f, 1.0f, 0.0f);
 
 
 	// Put the vertex attributes in the VBO
 	for (unsigned int i = 0; i < 24; i++) {
 		m_vbo.AddData(&planeVertices[i], sizeof(glm::vec3));
 		m_vbo.AddData(&planeTexCoords[i%4], sizeof(glm::vec2));
-		m_vbo.AddData(&planeNormal, sizeof(glm::vec3));
+		m_vbo.AddData(&planeNormals[i/4], sizeof(glm::vec3));
+		
+		//m_vbo.AddData(&planeNormal, sizeof(glm::vec3));
 	}
 	//---end!
 

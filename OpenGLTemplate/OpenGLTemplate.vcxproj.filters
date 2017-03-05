@@ -55,6 +55,12 @@
     <ClCompile Include="Cube.cpp">
       <Filter>Source Files\BasicShapes</Filter>
     </ClCompile>
+    <ClCompile Include="Tetrahedron.cpp">
+      <Filter>Source Files\BasicShapes</Filter>
+    </ClCompile>
+    <ClCompile Include="Icosahedron.cpp">
+      <Filter>Source Files\BasicShapes</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h">
@@ -112,6 +118,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Cube.h">
+      <Filter>Header Files\BasicShapes</Filter>
+    </ClInclude>
+    <ClInclude Include="Tetrahedron.h">
+      <Filter>Header Files\BasicShapes</Filter>
+    </ClInclude>
+    <ClInclude Include="Icosahedron.h">
       <Filter>Header Files\BasicShapes</Filter>
     </ClInclude>
   </ItemGroup>
