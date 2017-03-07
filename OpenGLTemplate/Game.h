@@ -43,7 +43,7 @@ private:
 	COpenAssetImportMesh *m_pSeaweed;
 	COpenAssetImportMesh *m_pRocks;
 	COpenAssetImportMesh *m_pCave;
-
+	COpenAssetImportMesh *m_pUrchin;
 	CSphere *m_pSphere;
 	CHighResolutionTimer *m_pHighResolutionTimer;
 	CAudio *m_pAudio;
@@ -61,7 +61,10 @@ private:
 	//my time
 	float m_time;
 	float m_currentDistance;
-
+	bool m_camViewType;
+	float m_inputSpeed;
+	bool m_limitInput;
+	glm::vec3 m_currentPlayerPos;
 public:
 	Game();
 	~Game();

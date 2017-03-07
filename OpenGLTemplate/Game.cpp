@@ -60,6 +60,7 @@ Game::Game()
 	m_pSeaweed = NULL;
 	m_pRocks = NULL;
 	m_pCave = NULL;
+	m_pUrchin = NULL;
 
 	m_pSphere = NULL;
 	m_pCube = NULL;
@@ -91,6 +92,7 @@ Game::~Game()
 	delete m_pSeaweed;
 	delete m_pRocks;
 	delete m_pCave;
+	delete m_pUrchin;
 
 	delete m_pSphere;
 	delete m_pCube;
@@ -131,7 +133,7 @@ void Game::Initialise()
 	m_pSeaweed = new COpenAssetImportMesh;
 	m_pRocks = new COpenAssetImportMesh;
 	m_pCave = new COpenAssetImportMesh;
-
+	m_pUrchin = new COpenAssetImportMesh;
 
 	m_pSphere = new CSphere;
 	m_pCube = new CCube;
@@ -143,8 +145,13 @@ void Game::Initialise()
 	//cat
 	m_pCatmullRom = new CCatmullRom;
 	m_pCatmullRom->CreateCentreline();
+	m_pCatmullRom->CreateOffsetCurves();
 	//current distance
 	m_currentDistance = 0.0f;
+	//cam view
+	m_camViewType = false;
+	m_inputSpeed = 0.0f;
+	m_limitInput = false;
 
 	RECT dimensions = m_gameWindow.GetDimensions();
 
@@ -228,23 +235,23 @@ void Game::Initialise()
 	m_pBarrelMesh->Load("resources\\models\\Barrel\\Barrel02.obj");  // Downloaded from http://www.psionicgames.com/?page_id=24 on 24 Jan 2013
 	m_pHorseMesh->Load("resources\\models\\Horse\\Horse2.obj");  // Downloaded from http://opengameart.org/content/horse-lowpoly on 24 Jan 2013
 	//Zhan's Objects
-	m_pJellyFish->Load("resources\\models\\Jelly\\jellyfish4.obj");// Made myself (25 Feb 2017)
+	m_pJellyFish->Load("resources\\models\\Jelly\\jellyfish3.obj");// Made myself (25 Feb 2017)
 	m_pSeaweed->Load("resources\\models\\Seaweed\\seaweed2.obj");// Made myself (25 Feb 2017)
 	m_pRocks->Load("resources\\models\\Rocks\\rocks.obj");// Made myself (25 Feb 2017)
 	m_pCave->Load("resources\\models\\Cave\\cave.obj");// Made myself (25 Feb 2017)
-
+	m_pUrchin->Load("resources\\models\\SeaUrchin\\seaUrchin.obj");// Made myself (06 Mar 2017)
 	// Create a sphere
 	m_pSphere->Create("resources\\textures\\", "dirtpile01.jpg", 25, 25);  // Texture downloaded from http://www.psionicgames.com/?page_id=26 on 24 Jan 2013
 
 
 	// my cube
-	m_pCube->Create("resources\\textures\\seafloor2.png");
+	m_pCube->Create("resources\\textures\\seafloor2.png");// Made myself (25 Feb 2017)
 
 	// my Tetrahedron
-	m_pTetrahedron->Create("resources\\textures\\seafloor2.png");
+	m_pTetrahedron->Create("resources\\textures\\seafloor2.png");// Made myself (25 Feb 2017)
 
 	//my Icosahedron
-	m_pIcosahedron->Create("resources\\textures\\seafloor2.png");
+	m_pIcosahedron->Create("resources\\textures\\seafloor2.png");// Made myself (25 Feb 2017)
 
 
 
@@ -493,6 +500,20 @@ void Game::Render()
 	pToonProgram->SetUniform("material1.Md", glm::vec3(0.0f));	// Diffuse material reflectance
 	pToonProgram->SetUniform("material1.Ms", glm::vec3(0.0f));	// Specular material reflectance
 	pToonProgram->SetUniform("material1.shininess", 15.0f);		// Shininess material property
+	pToonProgram->SetUniform("setColour", glm::vec3(.5, .5, .6));
+
+	//urchin
+	 modelViewMatrixStack.Push();
+	
+	 //set that to p!!!
+	 //modelViewMatrixStack.Translate(m_currentPlayerPos);
+	 	modelViewMatrixStack.Translate(glm::vec3(20.0f, 10.0f, 20.0f));
+	 	modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 60.0f);
+	 	modelViewMatrixStack.Scale(0.1f);
+	 	pToonProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
+	 	pToonProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
+	 	m_pUrchin->Render();
+	 modelViewMatrixStack.Pop();
 
 
 	//cave
@@ -555,17 +576,8 @@ void Game::Render()
 
 
 
-	//catmull rom
 
-	modelViewMatrixStack.Push();
-	pJellyProgram->SetUniform("bUseTexture", false); // turn off texturing
-	pJellyProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
-	pJellyProgram->SetUniform("matrices.normalMatrix",
-		m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
-
-	m_pCatmullRom->RenderCentreline();
-	modelViewMatrixStack.Pop();
-
+	
 
 
 
@@ -618,14 +630,29 @@ void Game::Render()
 	// modelViewMatrixStack.Pop();
 
 	//Render my jellyFish
-	// modelViewMatrixStack.Push();
-	// modelViewMatrixStack.Translate(glm::vec3(30.0f, 20.0f, 0.0f));
-	// modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 180.0f);
-	// modelViewMatrixStack.Scale(1.0f);
-	// pJellyProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
-	// pJellyProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
-	// m_pJellyFish->Render();
-	// modelViewMatrixStack.Pop();
+	 modelViewMatrixStack.Push();
+	 modelViewMatrixStack.Translate(m_currentPlayerPos);
+	 modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 180.0f);
+	 modelViewMatrixStack.Scale(0.1f);
+	 pJellyProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
+	 pJellyProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
+	 m_pJellyFish->Render();
+	 modelViewMatrixStack.Pop();
+
+
+
+
+	 //catmull rom
+
+	 modelViewMatrixStack.Push();
+	 pJellyProgram->SetUniform("bUseTexture", false); // turn off texturing
+	 pJellyProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
+	 pJellyProgram->SetUniform("matrices.normalMatrix",
+		 m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
+
+	 m_pCatmullRom->RenderCentreline();
+	 m_pCatmullRom->RenderOffsetCurves();
+	 modelViewMatrixStack.Pop();
 
 	/*
 	int i = 10;
@@ -662,22 +689,51 @@ void Game::Render()
 
 
 void Game::Cam1() {
-	//m_pCamera->Update(m_dt);
+	m_pCamera->Update(m_dt);
 }
 
 void Game::Cam2() {
 
-	static float t = 0.0f;
-	t += 0.0005f * (float)m_dt;
-	if (t > 1.0f)
-		t = 0.0f;
-	//z
-	//CCatmullRom cat;
-	//m_pCamera->Set();
+	//static float t = 0.0f;
+	//t += 0.0005f * (float)m_dt;
+	//if (t > 1.0f)
+	//	t = 0.0f;
+	//move along the spline
 
-	//m_pCamera->Set(cat.Interpolate(p0, p1, p2, p3, t), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0)); // task 2
+	//drifting speed;
+	float drifting = 0.002f;
+	m_currentDistance += (float)(drifting*m_dt)+m_inputSpeed;
+	m_inputSpeed -= (m_inputSpeed - 0) / 20;
+	//allow input
+	if(m_inputSpeed<0.2)m_limitInput = false;
 
+	glm::vec3 p;
+	glm::vec3 pNext;
+	m_pCatmullRom->Sample(m_currentDistance, p);
+	m_pCatmullRom->Sample(m_currentDistance + 1.0f, pNext);
 
+	//Frenet
+	glm::vec3 t;
+	t = glm::normalize(pNext - p);
+	//n and b not used here...
+	glm::vec3 n;
+	n = glm::normalize(glm::cross(t, glm::vec3(0, 1, 0)));
+	glm::vec3 b;
+	b = glm::normalize(glm::cross(n, t));
+
+	//----------------------------a little up on y axes
+	//normal
+	m_pCamera->Set(p + glm::vec3(0, 2, 0), p + 10.0f*t, glm::vec3(0, 1, 0));
+	glm::vec3 pPos;
+	m_pCatmullRom->Sample(m_currentDistance+5.0f, pPos);
+	
+	
+	m_currentPlayerPos = pPos;
+	
+	//from a side
+	//m_pCamera->Set(p + glm::vec3(0, 1, 0), p + 10.0f*p, glm::vec3(0, 1, 0));
+	//top down
+	//m_pCamera->Set(p + glm::vec3(0, 20, 0), p + 10.0f*-b, glm::vec3(0, 0, 1));
 }
 
 // Update method runs repeatedly with the Render method
@@ -685,28 +741,9 @@ void Game::Update()
 {
 	//time
 	m_time+=(float)(0.01f*m_dt);
-	//cam2 thing! new !
-	m_currentDistance += (float)(0.01f*m_dt);
+	//cam toggle
+	m_camViewType ? Cam1() : Cam2();
 
-
-
-
-	glm::vec3 p;
-	glm::vec3 pNext;
-	m_pCatmullRom->Sample(m_currentDistance, p);
-	m_pCatmullRom->Sample(m_currentDistance+1.0f, pNext);
-
-	//Frenet
-	glm::vec3 t;
-	t = glm::normalize(pNext-p);
-	glm::vec3 n;
-	n = glm::normalize(glm::cross(t, glm::vec3(0, 1, 0)));
-	glm::vec3 b;
-	b = glm::normalize(glm::cross(n, t));
-
-	m_pCamera->Set(p + glm::vec3(0,1,0), p + 10.0f*t, glm::vec3(0, 1, 0));
-	
-	//m_pCamera->Update(m_dt);//this is for moving independant??? YES!
 	m_pAudio->Update();
 }
 
@@ -849,7 +886,20 @@ LRESULT Game::ProcessEvents(HWND window,UINT message, WPARAM w_param, LPARAM l_p
 			PostQuitMessage(0);
 			break;
 		case '1':
+			m_camViewType = true;
+			break;
+		case '2':
+			m_camViewType = false;
+			break;
+		case ' ':
+			if (m_limitInput)break;
+			m_inputSpeed = 0.5f;
+			m_limitInput = true;
+			
+			break;
+		case '9':
 			m_pAudio->PlayEventSound();
+			
 			break;
 		case VK_F1:
 			m_pAudio->PlayEventSound();

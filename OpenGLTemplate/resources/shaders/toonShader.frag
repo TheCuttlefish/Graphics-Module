@@ -12,11 +12,14 @@ uniform bool bUseTexture;    // A flag indicating if texture-mapping should be a
 in vec3 worldPosition;
 in float fIntensity;
 
+//parsing colour
+uniform vec3 setColour;
 void main()
 {
 vec3 myColour;
 					//vec3(.89,.75,.52);
 vec3 sandColour = vec3(.85,.75,.6);
+sandColour = setColour;
 	 if(fIntensity>0.95){
 			myColour = sandColour;
 }else if(fIntensity>0.8){
