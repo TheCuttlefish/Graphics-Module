@@ -76,8 +76,8 @@ void main()
 
 	//jelly wobble
 	vec3 p = inPosition;
-	p.x-=cos(p.y-_t/5)/4;
-	p.y-=sin(p.x-_t/5)/4;
+	p.x-=cos(p.y-_t/5)/3;
+	p.y-=sin(p.x-_t/5)/3;
 
 
 	// Transform the vertex spatial position using 

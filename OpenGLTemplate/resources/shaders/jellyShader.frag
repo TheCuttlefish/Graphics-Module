@@ -10,19 +10,21 @@ uniform samplerCube CubeMapTex;
 uniform bool bUseTexture;    // A flag indicating if texture-mapping should be applied
 uniform bool renderSkybox;
 in vec3 worldPosition;
-
+uniform float _t;
 
 void main()
 {
 
-
+vec2 newTex = vTexCoord;
+newTex.x-=_t/7;
 	if (renderSkybox) {
 		vOutputColour = texture(CubeMapTex, worldPosition);
 
 	} else {
 
 		// Get the texel colour from the texture sampler
-		vec4 vTexColour = texture(sampler0, vTexCoord);	
+		vec4 vTexColour = texture(sampler0, newTex);	
+		//vec4 vTexColour = texture(sampler0, vTexCoord);	
 
 		if (bUseTexture)
 		//vOutputColour = vTexColour*vec4(1,1,1,1);

@@ -144,8 +144,12 @@ void Game::Initialise()
 
 	//cat
 	m_pCatmullRom = new CCatmullRom;
+	//m_pCatmullRom->SetTexture("resources\\textures\\seafloor2.png");
+	//m_pCatmullRom->SetTexture("resources\\textures\\flow.png");
+	m_pCatmullRom->SetTexture("resources\\textures\\water.jpg");
 	m_pCatmullRom->CreateCentreline();
 	m_pCatmullRom->CreateOffsetCurves();
+	
 	//current distance
 	m_currentDistance = 0.0f;
 	//cam view
@@ -253,7 +257,7 @@ void Game::Initialise()
 	//my Icosahedron
 	m_pIcosahedron->Create("resources\\textures\\seafloor2.png");// Made myself (25 Feb 2017)
 
-
+	//m_pCatmullRom->Create
 
 
 	glEnable(GL_CULL_FACE);
@@ -353,8 +357,7 @@ void Game::Render()
 	pMainProgram->SetUniform("material1.Ms", glm::vec3(1.0f));	// Specular material reflectance
 
 
-
-
+	
 
 
 
@@ -461,14 +464,14 @@ void Game::Render()
 	// modelViewMatrixStack.Pop();
 
 	//ICOSAHEDRON
-	// modelViewMatrixStack.Push();
-	// modelViewMatrixStack.Translate(glm::vec3(0.0f, 70.0f, 0.0f));
-	// modelViewMatrixStack.Scale(5.0f);
-	// pMainProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
-	// pMainProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
-	// //pMainProgram->SetUniform("bUseTexture", true);//off
-	// m_pIcosahedron->Render();
-	// modelViewMatrixStack.Pop();
+	 modelViewMatrixStack.Push();
+	 modelViewMatrixStack.Translate(glm::vec3(0.0f, 70.0f, 0.0f));
+	 modelViewMatrixStack.Scale(5.0f);
+	 pMainProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
+	 pMainProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
+	 //pMainProgram->SetUniform("bUseTexture", true);//off
+	 m_pIcosahedron->Render();
+	 modelViewMatrixStack.Pop();
 
 
 
@@ -517,14 +520,14 @@ void Game::Render()
 
 
 	//cave
-	// modelViewMatrixStack.Push();
-	// 	modelViewMatrixStack.Translate(glm::vec3(80.0f, 0.0f, 100.0f));
-	// 	modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 60.0f);
-	// 	modelViewMatrixStack.Scale(1.0f);
-	// 	pToonProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
-	// 	pToonProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
-	// 	m_pCave->Render();
-	// modelViewMatrixStack.Pop();
+	 modelViewMatrixStack.Push();
+	 	modelViewMatrixStack.Translate(glm::vec3(80.0f, 0.0f, 100.0f));
+	 	modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 60.0f);
+	 	modelViewMatrixStack.Scale(1.0f);
+	 	pToonProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
+	 	pToonProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
+	 	m_pCave->Render();
+	 modelViewMatrixStack.Pop();
 
 	// rocks
 	// modelViewMatrixStack.Push();
@@ -575,10 +578,20 @@ void Game::Render()
 	pJellyProgram->SetUniform("renderSkybox", false);
 
 
+	//to show back faces of the wave
+	glDisable(GL_CULL_FACE);
+	//catmull rom
+	modelViewMatrixStack.Push();
+	pJellyProgram->SetUniform("bUseTexture", true); // turn off texturing
+	pJellyProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
+	pJellyProgram->SetUniform("matrices.normalMatrix",
+		m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
 
-
-	
-
+	m_pCatmullRom->RenderCentreline();
+	m_pCatmullRom->RenderOffsetCurves();
+	modelViewMatrixStack.Pop();
+	//to hide back faces of other objects
+	glEnable(GL_CULL_FACE);
 
 
 
@@ -642,17 +655,7 @@ void Game::Render()
 
 
 
-	 //catmull rom
-
-	 modelViewMatrixStack.Push();
-	 pJellyProgram->SetUniform("bUseTexture", false); // turn off texturing
-	 pJellyProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
-	 pJellyProgram->SetUniform("matrices.normalMatrix",
-		 m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
-
-	 m_pCatmullRom->RenderCentreline();
-	 m_pCatmullRom->RenderOffsetCurves();
-	 modelViewMatrixStack.Pop();
+	
 
 	/*
 	int i = 10;
@@ -691,6 +694,48 @@ void Game::Render()
 void Game::Cam1() {
 	m_pCamera->Update(m_dt);
 }
+void Game::RailCam(int _type) {
+	float drifting = 0.003f;
+	m_currentDistance += (float)(drifting*m_dt) + m_inputSpeed;
+	m_inputSpeed -= (m_inputSpeed*m_dt - 0) / 200;
+	//allow input
+	if (m_inputSpeed<0.01)m_limitInput = false;
+
+	glm::vec3 p;
+	glm::vec3 pNext;
+	m_pCatmullRom->Sample(m_currentDistance, p);
+	m_pCatmullRom->Sample(m_currentDistance + 1.0f, pNext);
+
+	//Frenet
+	glm::vec3 t;
+	t = glm::normalize(pNext - p);
+	glm::vec3 n;
+	n = glm::normalize(glm::cross(t, glm::vec3(0, 1, 0)));
+	glm::vec3 b;
+	b = glm::normalize(glm::cross(n, t));
+
+	glm::vec3 pPos;
+	m_pCatmullRom->Sample(m_currentDistance + 5.0f, pPos);
+	m_currentPlayerPos = pPos;
+
+	if (_type == 0) {
+		//normal
+		m_pCamera->Set(p + glm::vec3(0, 2, 0), p + 10.0f*t, glm::vec3(0, 1, 0));
+	}
+	if (_type == 1) {
+		//side
+		m_pCamera->Set(m_currentPlayerPos - n*10.0f + b*1.0f, m_currentPlayerPos, glm::vec3(0, 1, 0));
+	}
+	if (_type == 2) {
+		//top down
+		m_pCamera->Set(m_currentPlayerPos+b*10.0f, m_currentPlayerPos, glm::vec3(0, 0, 1));
+	}
+	//----------------------------a little up on y axes
+	
+
+
+}
+
 
 void Game::Cam2() {
 
@@ -701,11 +746,11 @@ void Game::Cam2() {
 	//move along the spline
 
 	//drifting speed;
-	float drifting = 0.002f;
+	float drifting = 0.003f;
 	m_currentDistance += (float)(drifting*m_dt)+m_inputSpeed;
-	m_inputSpeed -= (m_inputSpeed - 0) / 20;
+	m_inputSpeed -= (m_inputSpeed*m_dt - 0) / 200;
 	//allow input
-	if(m_inputSpeed<0.2)m_limitInput = false;
+	if(m_inputSpeed<0.01)m_limitInput = false;
 
 	glm::vec3 p;
 	glm::vec3 pNext;
@@ -723,7 +768,7 @@ void Game::Cam2() {
 
 	//----------------------------a little up on y axes
 	//normal
-	m_pCamera->Set(p + glm::vec3(0, 2, 0), p + 10.0f*t, glm::vec3(0, 1, 0));
+	//m_pCamera->Set(p + glm::vec3(0, 2, 0), p + 10.0f*t, glm::vec3(0, 1, 0));
 	glm::vec3 pPos;
 	m_pCatmullRom->Sample(m_currentDistance+5.0f, pPos);
 	
@@ -731,9 +776,9 @@ void Game::Cam2() {
 	m_currentPlayerPos = pPos;
 	
 	//from a side
-	//m_pCamera->Set(p + glm::vec3(0, 1, 0), p + 10.0f*p, glm::vec3(0, 1, 0));
+	m_pCamera->Set(m_currentPlayerPos - n*10.0f + b*1.0f, m_currentPlayerPos, glm::vec3(0, 1, 0));
 	//top down
-	//m_pCamera->Set(p + glm::vec3(0, 20, 0), p + 10.0f*-b, glm::vec3(0, 0, 1));
+	//m_pCamera->Set(m_currentPlayerPos+b*10.0f, m_currentPlayerPos, glm::vec3(0, 0, 1));
 }
 
 // Update method runs repeatedly with the Render method
@@ -742,7 +787,7 @@ void Game::Update()
 	//time
 	m_time+=(float)(0.01f*m_dt);
 	//cam toggle
-	m_camViewType ? Cam1() : Cam2();
+	m_camViewType == 3 ? Cam1() : RailCam(m_camViewType);
 
 	m_pAudio->Update();
 }
@@ -886,14 +931,20 @@ LRESULT Game::ProcessEvents(HWND window,UINT message, WPARAM w_param, LPARAM l_p
 			PostQuitMessage(0);
 			break;
 		case '1':
-			m_camViewType = true;
+			m_camViewType = 0;
 			break;
 		case '2':
-			m_camViewType = false;
+			m_camViewType = 1;
+			break;
+		case '3':
+			m_camViewType = 2;
+			break;
+		case '4':
+			m_camViewType = 3;
 			break;
 		case ' ':
 			if (m_limitInput)break;
-			m_inputSpeed = 0.5f;
+			m_inputSpeed = 0.1f;
 			m_limitInput = true;
 			
 			break;

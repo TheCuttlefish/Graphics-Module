@@ -12,6 +12,14 @@ CCatmullRom::CCatmullRom()
 CCatmullRom::~CCatmullRom()
 {}
 
+void CCatmullRom::SetTexture(string filename) {
+	m_texture.Load(filename);
+	m_texture.SetSamplerObjectParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	m_texture.SetSamplerObjectParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	m_texture.SetSamplerObjectParameter(GL_TEXTURE_WRAP_S, GL_REPEAT);
+	m_texture.SetSamplerObjectParameter(GL_TEXTURE_WRAP_T, GL_REPEAT);
+	
+}
 // Perform Catmull Rom spline interpolation between four points, interpolating the space between p1 and p2
 glm::vec3 CCatmullRom::Interpolate(glm::vec3 &p0, glm::vec3 &p1, glm::vec3 &p2, glm::vec3 &p3, float t)
 {
@@ -160,7 +168,7 @@ void CCatmullRom::CreateCentreline()
 	// Call Set Control Points
 	SetControlPoints();
 	// Call UniformlySampleControlPoints with the number of samples required
-	UniformlySampleControlPoints(1000);
+	UniformlySampleControlPoints(100);
 	// Create a VAO called m_vaoCentreline and a VBO to get the points onto the graphics card
 	glGenVertexArrays(1, &m_vaoCentreline);
 	glBindVertexArray(m_vaoCentreline);
@@ -201,8 +209,21 @@ void CCatmullRom::CreateCentreline()
 
 void CCatmullRom::CreateOffsetCurves()
 {
+	float min = 0.0f;
+	float max = 1.0f;
+	glm::vec2 planeTexCoords[4] =
+	{
+		glm::vec2(min, min),
+		glm::vec2(min, max),
+		glm::vec2(max, min),
+		glm::vec2(max, max),
+		
+		
+		
+
+	};
 	// Compute the offset curves, one left, and one right.  Store the points in m_leftOffsetPoints and m_rightOffsetPoints respectively
-	glm::vec3 p, l, r;
+	glm::vec3 p, l,l2, r,r2;
 	glm::vec3 pNext;
 	int total;
 	total = m_centrelinePoints.size();
@@ -220,11 +241,24 @@ void CCatmullRom::CreateOffsetCurves()
 		t = glm::normalize(pNext - p);
 		glm::vec3 n;
 		n = glm::normalize(glm::cross(t, glm::vec3(0, 1, 0)));
+		glm::vec3 b;
+		b = glm::normalize(glm::cross(n, t));
 		//width = 5 for now...
-		l = p - (5.0f * n);
-		r = p + (5.0f * n);
+		l = p - (3.0f * n);
+		l2 = l - (2.0f * n) + (b*-1.0f);
+		r = p + (3.0f * n);
+		r2 =r + (2.0f * n) +( b*-1.0f);
+		m_leftOffsetPoints.push_back(l2);
 		m_leftOffsetPoints.push_back(l);
+
 		m_rightOffsetPoints.push_back(r);
+		m_rightOffsetPoints.push_back(r2);
+
+		//I'm using this vertex array for mesh!
+		//m_meshPoints.push_back(l + glm::vec3(0, 0.1f * (i % 10), 0)); some fun
+		m_meshPoints.push_back(l);
+		m_meshPoints.push_back(r);
+		//m_meshPoints.push_back(r2);
 	}
 	// Generate two VAOs called m_vaoLeftOffsetCurve and m_vaoRightOffsetCurve, each with a VBO, and get the offset curve points on the graphics card
 	//LEFT
@@ -236,12 +270,12 @@ void CCatmullRom::CreateOffsetCurves()
 	vbol.Create();
 	vbol.Bind();
 
-	glm::vec2 texCoord(0.0f, 0.0f);
+	glm::vec2 texCoord(1.0f, 0.0f);
 	glm::vec3 normal(0.0f, 1.0f, 0.0f);
 
-	for (auto & v : m_leftOffsetPoints) {
-		vbol.AddData(&v, sizeof(glm::vec3));
-		vbol.AddData(&texCoord, sizeof(glm::vec2));
+	for (unsigned int i = 0; i < m_leftOffsetPoints.size(); i++) {
+		vbol.AddData(&m_leftOffsetPoints[i], sizeof(glm::vec3));
+		vbol.AddData(&glm::vec2(i - (i % 2), (i % 2)), sizeof(glm::vec2));
 		vbol.AddData(&normal, sizeof(glm::vec3));
 
 	}
@@ -271,10 +305,9 @@ void CCatmullRom::CreateOffsetCurves()
 
 	//glm::vec2 texCoord(0.0f, 0.0f);
 	//glm::vec3 normal(0.0f, 1.0f, 0.0f);
-
-	for (auto & v : m_rightOffsetPoints) {
-		vbor.AddData(&v, sizeof(glm::vec3));
-		vbor.AddData(&texCoord, sizeof(glm::vec2));
+	for (unsigned int i = 0; i < m_rightOffsetPoints.size(); i++) {
+		vbor.AddData(&m_rightOffsetPoints[i], sizeof(glm::vec3));
+		vbor.AddData(&glm::vec2(i - (i % 2), (i % 2)), sizeof(glm::vec2));
 		vbor.AddData(&normal, sizeof(glm::vec3));
 
 	}
@@ -300,6 +333,53 @@ void CCatmullRom::CreateOffsetCurves()
 	// Note it is possible to only use one VAO / VBO with all the points instead.
 
 
+
+
+	//MESH!!
+	glGenVertexArrays(1, &m_vaoMeshCurve);
+	glBindVertexArray(m_vaoMeshCurve);
+
+	CVertexBufferObject vbom;
+
+	vbom.Create();
+	vbom.Bind();
+
+	
+	//glm::vec3 normal(0.0f, 1.0f, 0.0f);
+	
+	
+	
+	//for (auto & v : m_meshPoints) {
+
+	for (unsigned int i = 0; i < m_meshPoints.size(); i++) {
+		vbom.AddData(&m_meshPoints[i], sizeof(glm::vec3));
+		//for now v - replace with texture...
+		vbom.AddData(&glm::vec2(i- (i % 2), (i % 2)), sizeof(glm::vec2));
+		//vbom.AddData(&glm::vec2(i+i%1, i%2), sizeof(glm::vec2));
+		//vbom.AddData(&planeTexCoords[i % 4], sizeof(glm::vec2));
+
+		vbom.AddData(&normal, sizeof(glm::vec3));
+
+	}
+	
+
+	vbom.UploadDataToGPU(GL_STATIC_DRAW);
+
+	//	GLsizei stride = 2 * sizeof(glm::vec3) + sizeof(glm::vec2);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, 0);
+
+	glEnableVertexAttribArray(1);//------------------------------------vert distance
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, stride, (void*)(sizeof(glm::vec3)));
+
+	glEnableVertexAttribArray(2);//----------------------------------vert distance + texture distance
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, stride, (void*)(sizeof(glm::vec3) + sizeof(glm::vec2)));
+
+	
+
+
+
+
 }
 
 
@@ -319,21 +399,38 @@ void CCatmullRom::RenderCentreline()
 	glLineWidth(0.1f);
 	glPointSize(5.0f);
 	glDrawArrays(GL_LINE_LOOP, 0, m_centrelinePoints.size());
+	
 }
 
 void CCatmullRom::RenderOffsetCurves()
 {
-	// Bind the VAO m_vaoLeftOffsetCurve and render it
-	glBindVertexArray(m_vaoLeftOffsetCurve);
-	glDrawArrays(GL_POINTS, 0, m_leftOffsetPoints.size());
-	//to add right ones start from 500 and move on.... 
-	glDrawArrays(GL_LINE_LOOP, 0, m_leftOffsetPoints.size());
 
+	//points!!
+	// Bind the VAO m_vaoLeftOffsetCurve and render it
+	//glBindVertexArray(m_vaoLeftOffsetCurve);
+	//glDrawArrays(GL_POINTS, 0, m_leftOffsetPoints.size());
+	//to add right ones start from 500 and move on.... 
+	//glDrawArrays(GL_LINE_LOOP, 0, m_leftOffsetPoints.size());
+	//draw strips
+	
 
 	// Bind the VAO m_vaoRightOffsetCurve and render it
+	//glBindVertexArray(m_vaoRightOffsetCurve);
+	//glDrawArrays(GL_POINTS, 0, m_rightOffsetPoints.size());
+	//glDrawArrays(GL_LINE_LOOP, 0, m_rightOffsetPoints.size());
+	
+	//BIND THE MESH 
+	glBindVertexArray(m_vaoMeshCurve);
+	m_texture.Bind();
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, m_meshPoints.size());
+
+	glBindVertexArray(m_vaoLeftOffsetCurve);
+	m_texture.Bind();
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, m_leftOffsetPoints.size());
+	
 	glBindVertexArray(m_vaoRightOffsetCurve);
-	glDrawArrays(GL_POINTS, 0, m_rightOffsetPoints.size());
-	glDrawArrays(GL_LINE_LOOP, 0, m_rightOffsetPoints.size());
+	m_texture.Bind();
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, m_rightOffsetPoints.size());
 }
 
 

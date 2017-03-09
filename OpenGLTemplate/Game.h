@@ -61,7 +61,7 @@ private:
 	//my time
 	float m_time;
 	float m_currentDistance;
-	bool m_camViewType;
+	int m_camViewType;
 	float m_inputSpeed;
 	bool m_limitInput;
 	glm::vec3 m_currentPlayerPos;
@@ -71,6 +71,7 @@ public:
 	//z
 	void Cam1();
 	void Cam2();
+	void RailCam(int type);
 	static Game& GetInstance();
 	LRESULT ProcessEvents(HWND window,UINT message, WPARAM w_param, LPARAM l_param);
 	void SetHinstance(HINSTANCE hinstance);
