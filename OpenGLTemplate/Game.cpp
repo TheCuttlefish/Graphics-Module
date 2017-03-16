@@ -56,11 +56,13 @@ Game::Game()
 	m_pBarrelMesh = NULL;
 	m_pHorseMesh = NULL;
 	//z
+	m_grid = NULL;
 	m_pJellyFish = NULL;
 	m_pSeaweed = NULL;
 	m_pRocks = NULL;
 	m_pCave = NULL;
 	m_pUrchin = NULL;
+	m_pPlayer = NULL;
 
 	m_pSphere = NULL;
 	m_pCube = NULL;
@@ -88,11 +90,14 @@ Game::~Game()
 	delete m_pBarrelMesh;
 	delete m_pHorseMesh;
 	//zhan- import
+	delete m_grid;
+
 	delete m_pJellyFish;
 	delete m_pSeaweed;
 	delete m_pRocks;
 	delete m_pCave;
 	delete m_pUrchin;
+	delete m_pPlayer;
 
 	delete m_pSphere;
 	delete m_pCube;
@@ -129,12 +134,14 @@ void Game::Initialise()
 	m_pBarrelMesh = new COpenAssetImportMesh;
 	m_pHorseMesh = new COpenAssetImportMesh;
 	//zhan- import
+	m_grid = new CPlane;
+
 	m_pJellyFish = new COpenAssetImportMesh;
 	m_pSeaweed = new COpenAssetImportMesh;
 	m_pRocks = new COpenAssetImportMesh;
 	m_pCave = new COpenAssetImportMesh;
 	m_pUrchin = new COpenAssetImportMesh;
-
+	m_pPlayer = new COpenAssetImportMesh;
 	m_pSphere = new CSphere;
 	m_pCube = new CCube;
 	m_pTetrahedron = new CTetrahedron;
@@ -146,17 +153,17 @@ void Game::Initialise()
 	m_pCatmullRom = new CCatmullRom;
 	//m_pCatmullRom->SetTexture("resources\\textures\\seafloor2.png");
 	//m_pCatmullRom->SetTexture("resources\\textures\\flow.png");
-	m_pCatmullRom->SetTexture("resources\\textures\\water.jpg");
+	m_pCatmullRom->SetTexture("resources\\textures\\flow5.png");
 	m_pCatmullRom->CreateCentreline();
 	m_pCatmullRom->CreateOffsetCurves();
 	
 	//current distance
 	m_currentDistance = 0.0f;
 	//cam view
-	m_camViewType = false;
-	m_inputSpeed = 0.0f;
-	m_limitInput = false;
-
+	m_camViewType = false; //cam types
+	m_inputSpeed = 0.0f; //speed of the player
+	m_limitInput = false;// timer to limit input
+	m_playerScale = 1.0f;// player's scale
 	RECT dimensions = m_gameWindow.GetDimensions();
 
 	int width = dimensions.right - dimensions.left;
@@ -178,6 +185,8 @@ void Game::Initialise()
 	sShaderFileNames.push_back("jellyShader.frag");
 	sShaderFileNames.push_back("toonShader.vert");
 	sShaderFileNames.push_back("toonShader.frag");
+	sShaderFileNames.push_back("player.vert");
+	sShaderFileNames.push_back("player.frag");
 	for (int i = 0; i < (int) sShaderFileNames.size(); i++) {
 		string sExt = sShaderFileNames[i].substr((int) sShaderFileNames[i].size()-4, 4);
 		int iShaderType;
@@ -223,6 +232,14 @@ void Game::Initialise()
 	pToonProgram->LinkProgram();
 	m_pShaderPrograms->push_back(pToonProgram);
 
+	//Adding my player shader!
+	CShaderProgram *pPlayerProgram = new CShaderProgram;
+	pPlayerProgram->CreateProgram();
+	pPlayerProgram->AddShaderToProgram(&shShaders[8]);
+	pPlayerProgram->AddShaderToProgram(&shShaders[9]);
+	pPlayerProgram->LinkProgram();
+	m_pShaderPrograms->push_back(pPlayerProgram);
+
 	// You can follow this pattern to load additional shaders
 
 	// Create the skybox
@@ -230,8 +247,9 @@ void Game::Initialise()
 	m_pSkybox->Create(2500.0f);
 
 	// Create the planar terrain
-	m_pPlanarTerrain->Create("resources\\textures\\", "seafloor2.png", 2000.0f, 2000.0f, 20.0f); // Texture made myself (25 Feb 2017)
-
+	m_pPlanarTerrain->Create("resources\\textures\\", "seafloor3.png", 2000.0f, 2000.0f, 20.0f); // Texture made myself (25 Feb 2017)
+	//m_grid->Create("resources\\textures\\", "grid2.png", 600.0f, 600.0f, 1.0f);
+	
 	m_pFtFont->LoadSystemFont("arial.ttf", 32);
 	m_pFtFont->SetShaderProgram(pFontProgram);
 
@@ -240,27 +258,33 @@ void Game::Initialise()
 	m_pHorseMesh->Load("resources\\models\\Horse\\Horse2.obj");  // Downloaded from http://opengameart.org/content/horse-lowpoly on 24 Jan 2013
 	//Zhan's Objects
 	m_pJellyFish->Load("resources\\models\\Jelly\\jellyfish3.obj");// Made myself (25 Feb 2017)
-	m_pSeaweed->Load("resources\\models\\Seaweed\\seaweed2.obj");// Made myself (25 Feb 2017)
+	m_pSeaweed->Load("resources\\models\\Seaweed\\seaweed7.obj");// Made myself (25 Feb 2017)
 	m_pRocks->Load("resources\\models\\Rocks\\rocks.obj");// Made myself (25 Feb 2017)
 	m_pCave->Load("resources\\models\\Cave\\cave.obj");// Made myself (25 Feb 2017)
 	m_pUrchin->Load("resources\\models\\SeaUrchin\\seaUrchin.obj");// Made myself (06 Mar 2017)
+	m_pPlayer->Load("resources\\models\\Jelly\\player.obj");// Made myself (13 Mar 2017)
 	// Create a sphere
 	m_pSphere->Create("resources\\textures\\", "dirtpile01.jpg", 25, 25);  // Texture downloaded from http://www.psionicgames.com/?page_id=26 on 24 Jan 2013
 
 
 	// my cube
-	m_pCube->Create("resources\\textures\\seafloor2.png");// Made myself (25 Feb 2017)
+	m_pCube->Create("resources\\textures\\seafloor3.png");// Made myself (11 Mar 2017)
 
 	// my Tetrahedron
-	m_pTetrahedron->Create("resources\\textures\\seafloor2.png");// Made myself (25 Feb 2017)
+	m_pTetrahedron->Create("resources\\textures\\seafloor3.png");// Made myself (11 Mar 2017)
 
 	//my Icosahedron
-	m_pIcosahedron->Create("resources\\textures\\seafloor2.png");// Made myself (25 Feb 2017)
+	m_pIcosahedron->Create("resources\\textures\\seafloor3.png");// Made myself (11 Mar 2017)
 
 	//m_pCatmullRom->Create
 
 
 	glEnable(GL_CULL_FACE);
+
+	//MSAA
+	//glEnable(GL_MULTISAMPLE_ARB);
+	//glEnable(GL_MULTISAMPLE);
+
 	// Initialise audio and play background music
 	m_pAudio->Initialise();
 	m_pAudio->LoadEventSound("Resources\\Audio\\Boing.wav");					// Royalty free sound from freesound.org
@@ -282,7 +306,8 @@ void Game::Initialise()
 // Render method runs repeatedly in a loop
 void Game::Render()
 {
-
+	glEnable(GL_MULTISAMPLE);
+	//glDisable(GL_MULTISAMPLE);
 	// Clear the buffers and enable depth testing (z-buffering)
 	glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
@@ -350,37 +375,17 @@ void Game::Render()
 	 	m_pPlanarTerrain->Render();
 	 modelViewMatrixStack.Pop();
 
+	
+
 
 	// Turn on diffuse + specular materials
 	pMainProgram->SetUniform("material1.Ma", glm::vec3(0.5f));	// Ambient material reflectance
 	pMainProgram->SetUniform("material1.Md", glm::vec3(0.5f));	// Diffuse material reflectance
 	pMainProgram->SetUniform("material1.Ms", glm::vec3(1.0f));	// Specular material reflectance
 
-
-	
-
-
-
-	/*
-	int i = 10;
-
-	while (i > 0) {
-		// Render the horse
-		modelViewMatrixStack.Push();
-		modelViewMatrixStack.Translate(glm::vec3(i*10.0f, 0, i*10.0f));
-		modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 180.0f);
-		modelViewMatrixStack.Scale(2.5f);
-		pMainProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
-		pMainProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
-		m_pHorseMesh->Render();
-		modelViewMatrixStack.Pop();
-
-		i--;
-	}
-	*/
 	// Render the horse
 	modelViewMatrixStack.Push();
-	modelViewMatrixStack.Translate(glm::vec3(0.0f, 0.0f, 10.0f));
+	modelViewMatrixStack.Translate(glm::vec3(100.0f, 0.0f, 300.0f));
 	modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 180.0f);
 	modelViewMatrixStack.Scale(2.5f);
 	pMainProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
@@ -389,7 +394,7 @@ void Game::Render()
 	modelViewMatrixStack.Pop();
 	
 
-
+	
 
 
 
@@ -476,14 +481,14 @@ void Game::Render()
 
 
 	//TERTRAHEDRON
-	// modelViewMatrixStack.Push();
-	// 	modelViewMatrixStack.Translate(glm::vec3(0.0f, 60.0f, 0.0f));
-	// 	modelViewMatrixStack.Scale(5.0f);
-	// 	pMainProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
-	// 	pMainProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
-	// 	//pMainProgram->SetUniform("bUseTexture", false);//off
-	// 	m_pTetrahedron->Render();
-	// modelViewMatrixStack.Pop();
+	 modelViewMatrixStack.Push();
+	 	modelViewMatrixStack.Translate(glm::vec3(0.0f, 60.0f, 0.0f));
+	 	modelViewMatrixStack.Scale(5.0f);
+	 	pMainProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
+	 	pMainProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
+	 	//pMainProgram->SetUniform("bUseTexture", false);//off
+	 	m_pTetrahedron->Render();
+	 modelViewMatrixStack.Pop();
 
 	//--original pos of catmullrom
 
@@ -504,60 +509,166 @@ void Game::Render()
 	pToonProgram->SetUniform("material1.Ms", glm::vec3(0.0f));	// Specular material reflectance
 	pToonProgram->SetUniform("material1.shininess", 15.0f);		// Shininess material property
 	pToonProgram->SetUniform("setColour", glm::vec3(.5, .5, .6));
-
+	pToonProgram->SetUniform("wobble", true);
 	//urchin
-	 modelViewMatrixStack.Push();
+
 	
 	 //set that to p!!!
-	 //modelViewMatrixStack.Translate(m_currentPlayerPos);
-	 	modelViewMatrixStack.Translate(glm::vec3(20.0f, 10.0f, 20.0f));
-	 	modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 60.0f);
-	 	modelViewMatrixStack.Scale(0.1f);
-	 	pToonProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
-	 	pToonProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
-	 	m_pUrchin->Render();
-	 modelViewMatrixStack.Pop();
+	 glm::vec3 pos = glm::vec3(0);
+	 glm::vec3 move = glm::vec3(0,-2+cos(m_time/3)*4, 0);
+	 
 
+	 for (int i = 0; i < m_enemyCount-1; i++) {
+		 m_enemyPos[i] = pos + move;
+		 modelViewMatrixStack.Push();
+		 m_pCatmullRom->Sample(40.0f*i, pos);
+		 modelViewMatrixStack.Translate(pos + move);
+		 modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 60.0f);
+		 
+		 modelViewMatrixStack.Scale(m_enemyScale);
+		 pToonProgram->SetUniform("setColour", glm::vec3(.3, 0, 0));
+		 pToonProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
+		 pToonProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
 
+		 float dist = glm::distance(m_currentPlayerPos, pos+move);
+		 CheckDistance(dist);
+
+		 m_pUrchin->Render();
+		modelViewMatrixStack.Pop();
+
+	 }
+
+	 pToonProgram->SetUniform("wobble", false);
 	//cave
 	 modelViewMatrixStack.Push();
-	 	modelViewMatrixStack.Translate(glm::vec3(80.0f, 0.0f, 100.0f));
-	 	modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 60.0f);
-	 	modelViewMatrixStack.Scale(1.0f);
+	 	modelViewMatrixStack.Translate(glm::vec3(100.0f, 0.0f, -10.0f));
+	 	modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 119.0f);
+	 	modelViewMatrixStack.Scale(0.5f);                 //.9, .85, .8
+		pToonProgram->SetUniform("setColour", glm::vec3(.85, .822, .8 ));
 	 	pToonProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
 	 	pToonProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
 	 	m_pCave->Render();
 	 modelViewMatrixStack.Pop();
 
+
+	 modelViewMatrixStack.Push();
+	 modelViewMatrixStack.Translate(glm::vec3(-30.0f, 0.0f, -95.0f));
+	 modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), -128.0f);
+	 modelViewMatrixStack.Scale(0.65f);                 //.9, .85, .8
+	 pToonProgram->SetUniform("setColour", glm::vec3(.85, .822, .8));
+	 pToonProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
+	 pToonProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
+	 m_pCave->Render();
+	 modelViewMatrixStack.Pop();
+
 	// rocks
-	// modelViewMatrixStack.Push();
-	// 	modelViewMatrixStack.Translate(glm::vec3(80.0f, 0.0f, 200.0f));
-	// 	modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 180.0f);
-	// 	modelViewMatrixStack.Scale(3.2f);
-	// 	pToonProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
-	// 	pToonProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
-	// 	m_pRocks->Render();
-	// modelViewMatrixStack.Pop();
+	 modelViewMatrixStack.Push();
+	 	modelViewMatrixStack.Translate(glm::vec3(50.0f, 0.0f, 100.0f));
+	 	modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 180.0f);
+	 	modelViewMatrixStack.Scale(2.0f);
+	 	pToonProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
+	 	pToonProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
+	 	m_pRocks->Render();
+	 modelViewMatrixStack.Pop();
+
+	 modelViewMatrixStack.Push();
+		 modelViewMatrixStack.Translate(glm::vec3(-100.0f, 0.0f, -200.0f));
+		 modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 90.0f);
+		 modelViewMatrixStack.Scale(2.0f);
+		 pToonProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
+		 pToonProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
+		 m_pRocks->Render();
+	 modelViewMatrixStack.Pop();
 
 
-	// modelViewMatrixStack.Push();
-	// 	modelViewMatrixStack.Translate(glm::vec3(80.0f, 0.0f, -100.0f));
-	// 	modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 60.0f);
-	// 	modelViewMatrixStack.Scale(2.2f);
-	// 	pToonProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
-	// 	pToonProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
-	// 	m_pRocks->Render();
-	// modelViewMatrixStack.Pop();
+	 modelViewMatrixStack.Push();
+		 modelViewMatrixStack.Translate(glm::vec3(-50.0f, 0.0f, -50.0f));
+		 modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 50.0f);
+		 modelViewMatrixStack.Scale(1.3f);
+		 pToonProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
+		 pToonProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
+		 m_pRocks->Render();
+	 modelViewMatrixStack.Pop();
+
+	 modelViewMatrixStack.Push();
+		 modelViewMatrixStack.Translate(glm::vec3(300.0f, 0.0f, 210.0f));
+		 modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 190.0f);
+		 modelViewMatrixStack.Scale(4.3f);
+		 pToonProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
+		 pToonProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
+		 m_pRocks->Render();
+	 modelViewMatrixStack.Pop();
+
+	 modelViewMatrixStack.Push();
+		 modelViewMatrixStack.Translate(glm::vec3(300.0f, 0.0f, -210.0f));
+		 modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 10.0f);
+		 modelViewMatrixStack.Scale(3.3f);
+		 pToonProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
+		 pToonProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
+		 m_pRocks->Render();
+	 modelViewMatrixStack.Pop();
+
+	 modelViewMatrixStack.Push();
+		 modelViewMatrixStack.Translate(glm::vec3(350.0f, 0.0f, 0.0f));
+		 modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 90.0f);
+		 modelViewMatrixStack.Scale(2.3f);
+		 pToonProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
+		 pToonProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
+		 m_pRocks->Render();
+	 modelViewMatrixStack.Pop();
 
 
+	 modelViewMatrixStack.Push();
+		 modelViewMatrixStack.Translate(glm::vec3(-300.0f, 0.0f, 210.0f));
+		 modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 190.0f);
+		 modelViewMatrixStack.Scale(4.3f);
+		 pToonProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
+		 pToonProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
+		 m_pRocks->Render();
+	 modelViewMatrixStack.Pop();
 
+	 modelViewMatrixStack.Push();
+		 modelViewMatrixStack.Translate(glm::vec3(-300.0f, 0.0f, -210.0f));
+		 modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 10.0f);
+		 modelViewMatrixStack.Scale(3.3f);
+		 pToonProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
+		 pToonProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
+		 m_pRocks->Render();
+	 modelViewMatrixStack.Pop();
+
+	 modelViewMatrixStack.Push();
+		 modelViewMatrixStack.Translate(glm::vec3(-350.0f, 0.0f, 0.0f));
+		 modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 90.0f);
+		 modelViewMatrixStack.Scale(2.3f);
+		 pToonProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
+		 pToonProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
+		 m_pRocks->Render();
+	 modelViewMatrixStack.Pop();
+
+	 modelViewMatrixStack.Push();
+		 modelViewMatrixStack.Translate(glm::vec3(-220.0f, 0.0f, 0.0f));
+		 modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 0.0f);
+		 modelViewMatrixStack.Scale(1.5f);
+		 pToonProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
+		 pToonProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
+		 m_pRocks->Render();
+	 modelViewMatrixStack.Pop();
+
+	 modelViewMatrixStack.Push();
+		 modelViewMatrixStack.Translate(glm::vec3(-200.0f, 0.0f, -100.0f));
+		 modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 60.0f);
+		 modelViewMatrixStack.Scale(0.5f);
+		 pToonProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
+		 pToonProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
+		 m_pRocks->Render();
+	 modelViewMatrixStack.Pop();
 
 	//glCullFace(GL_FRONT_AND_BACK);
 
 
 
 	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	
 
 
 	CShaderProgram *pJellyProgram = (*m_pShaderPrograms)[2];
@@ -576,106 +687,179 @@ void Game::Render()
 	pJellyProgram->SetUniform("material1.Ms", glm::vec3(0.0f));	// Specular material reflectance
 	pJellyProgram->SetUniform("material1.shininess", 15.0f);		// Shininess material property
 	pJellyProgram->SetUniform("renderSkybox", false);
+	pJellyProgram->SetUniform("moveTexture", false);
+	pJellyProgram->SetUniform("calm", true);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	//glBlendFunc(GL_SRC_ALPHA, GL_SRC1_RGB);
+	//Render grid
+	modelViewMatrixStack.Push();
+		modelViewMatrixStack.Translate(glm::vec3(0, 1, 0));
+		modelViewMatrixStack.Rotate(glm::vec3(1.0f, 0.0f, 0.0f), 180.0f);
+		//modelViewMatrixStack.Rotate(glm::vec3(1.0f, 0.0f, 0.0f), 180.0f);
+		pJellyProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
+		pJellyProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
+		m_grid->Render();
+	modelViewMatrixStack.Pop();
+
+	
+
+	//Render a jellyFish
+	modelViewMatrixStack.Push();
+		modelViewMatrixStack.Translate(glm::vec3(0, 5, 0));
+		modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 180.0f);
+		modelViewMatrixStack.Scale(0.1f);
+		pJellyProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
+		pJellyProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
+		m_pJellyFish->Render();
+	modelViewMatrixStack.Pop();
+
+
+	pJellyProgram->SetUniform("calm", false);
+
+	//Render my seaweed
+	 modelViewMatrixStack.Push();
+		 modelViewMatrixStack.Translate(glm::vec3(110.0f, 0.0f, 0.0f));
+		 modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 20.0f);
+		 modelViewMatrixStack.Scale(0.2f);
+		 pJellyProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
+		 pJellyProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
+		 m_pSeaweed->Render();
+	 modelViewMatrixStack.Pop();
+
+	 modelViewMatrixStack.Push();
+		 modelViewMatrixStack.Translate(glm::vec3(190.0f, 0.0f, 0.0f));
+		 modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 20.0f);
+		 modelViewMatrixStack.Scale(0.3f);
+		 pJellyProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
+		 pJellyProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
+		 m_pSeaweed->Render();
+	 modelViewMatrixStack.Pop();
+	 
+	 modelViewMatrixStack.Push();
+		 modelViewMatrixStack.Translate(glm::vec3(40.0f, 0.0f, 40.0f));
+		 modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 20.0f);
+		 modelViewMatrixStack.Scale(0.2f);
+		 pJellyProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
+		 pJellyProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
+		 m_pSeaweed->Render();
+	 modelViewMatrixStack.Pop();
+
+	
+	modelViewMatrixStack.Push();
+		 modelViewMatrixStack.Translate(glm::vec3(-100.0f, 0.0f, 100.0f));
+		 modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 20.0f);
+		 modelViewMatrixStack.Scale(0.2f);
+		 pJellyProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
+		 pJellyProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
+		 m_pSeaweed->Render();
+	 modelViewMatrixStack.Pop();
+
+	 modelViewMatrixStack.Push();
+		 modelViewMatrixStack.Translate(glm::vec3(-40.0f, 0.0f, 90.0f));
+		 modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 20.0f);
+		 modelViewMatrixStack.Scale(0.3f);
+		 pJellyProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
+		 pJellyProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
+		 m_pSeaweed->Render();
+	 modelViewMatrixStack.Pop();
+
+	 modelViewMatrixStack.Push();
+		 modelViewMatrixStack.Translate(glm::vec3(-30.0f, 0.0f, 70.0f));
+		 modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 20.0f);
+		 modelViewMatrixStack.Scale(0.1f);
+		 pJellyProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
+		 pJellyProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
+		 m_pSeaweed->Render();
+	 modelViewMatrixStack.Pop();
+
+	 modelViewMatrixStack.Push();
+		 modelViewMatrixStack.Translate(glm::vec3(40.0f, 0.0f, 0.0f));
+		 modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 20.0f);
+		 modelViewMatrixStack.Scale(0.3f);
+		 pJellyProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
+		 pJellyProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
+		 m_pSeaweed->Render();
+	 modelViewMatrixStack.Pop();
+
+	 modelViewMatrixStack.Push();
+		 modelViewMatrixStack.Translate(glm::vec3(-30.0f, 0.0f, 10.0f));
+		 modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 20.0f);
+		 modelViewMatrixStack.Scale(0.3f);
+		 pJellyProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
+		 pJellyProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
+		 m_pSeaweed->Render();
+	 modelViewMatrixStack.Pop();
+
+	 modelViewMatrixStack.Push();
+		 modelViewMatrixStack.Translate(glm::vec3(-60.0f, 0.0f, 0.0f));
+		 modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 20.0f);
+		 modelViewMatrixStack.Scale(0.3f);
+		 pJellyProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
+		 pJellyProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
+		 m_pSeaweed->Render();
+	 modelViewMatrixStack.Pop();
+	
+	 modelViewMatrixStack.Push();
+		 modelViewMatrixStack.Translate(glm::vec3(-90.0f, 0.0f, 20.0f));
+		 modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 20.0f);
+		 modelViewMatrixStack.Scale(0.4f);
+		 pJellyProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
+		 pJellyProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
+		 m_pSeaweed->Render();
+	 modelViewMatrixStack.Pop();
 
 
 	//to show back faces of the wave
-	glDisable(GL_CULL_FACE);
-	//catmull rom
-	modelViewMatrixStack.Push();
-	pJellyProgram->SetUniform("bUseTexture", true); // turn off texturing
-	pJellyProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
-	pJellyProgram->SetUniform("matrices.normalMatrix",
-		m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
+	 glDisable(GL_CULL_FACE);
+	 //catmullrom
+	 pJellyProgram->SetUniform("calm", true);
+	 pJellyProgram->SetUniform("moveTexture", true);
 
-	m_pCatmullRom->RenderCentreline();
-	m_pCatmullRom->RenderOffsetCurves();
-	modelViewMatrixStack.Pop();
-	//to hide back faces of other objects
-	glEnable(GL_CULL_FACE);
-
-
-
-
-	//Render my seaweed
-	// modelViewMatrixStack.Push();
-	// modelViewMatrixStack.Translate(glm::vec3(20.0f, 0.0f, 0.0f));
-	// modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 60.0f);
-	// modelViewMatrixStack.Scale(3.0f);
-	// pJellyProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
-	// pJellyProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
-	// m_pSeaweed->Render();
-	// modelViewMatrixStack.Pop();
-
-	// modelViewMatrixStack.Push();
-	// modelViewMatrixStack.Translate(glm::vec3(40.0f, 0.0f, 40.0f));
-	// modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 180.0f);
-	// modelViewMatrixStack.Scale(2.5f);
-	// pJellyProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
-	// pJellyProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
-	// m_pSeaweed->Render();
-	// modelViewMatrixStack.Pop();
-
-	// modelViewMatrixStack.Push();
-	// modelViewMatrixStack.Translate(glm::vec3(80.0f, 0.0f, 30.0f));
-	// modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 10.0f);
-	// modelViewMatrixStack.Scale(3.2f);
-	// pJellyProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
-	// pJellyProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
-	// m_pSeaweed->Render();
-	// modelViewMatrixStack.Pop();
-
-	// modelViewMatrixStack.Push();
-	// modelViewMatrixStack.Translate(glm::vec3(80.0f, 0.0f, 90.0f));
-	// modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 90.0f);
-	// modelViewMatrixStack.Scale(3.2f);
-	// pJellyProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
-	// pJellyProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
-	// m_pSeaweed->Render();
-	// modelViewMatrixStack.Pop();
-
-	// modelViewMatrixStack.Push();
-	// modelViewMatrixStack.Translate(glm::vec3(80.0f, 0.0f, 160.0f));
-	// modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 130.0f);
-	// modelViewMatrixStack.Scale(2.4f);
-	// pJellyProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
-	// pJellyProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
-	// m_pSeaweed->Render();
-	// modelViewMatrixStack.Pop();
-
-	//Render my jellyFish
 	 modelViewMatrixStack.Push();
-	 modelViewMatrixStack.Translate(m_currentPlayerPos);
-	 modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 180.0f);
-	 modelViewMatrixStack.Scale(0.1f);
-	 pJellyProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
-	 pJellyProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
-	 m_pJellyFish->Render();
+		 pJellyProgram->SetUniform("bUseTexture", true); // turn off texturing
+		 pJellyProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
+		 pJellyProgram->SetUniform("matrices.normalMatrix",
+			 m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
+
+		 m_pCatmullRom->RenderCentreline();
+		 m_pCatmullRom->RenderOffsetCurves();
 	 modelViewMatrixStack.Pop();
 
 
 
+	 CShaderProgram *pPlayerProgram = (*m_pShaderPrograms)[4];
+	 pPlayerProgram->UseProgram();
+	 pPlayerProgram->SetUniform("_t", m_time);
+	 pPlayerProgram->SetUniform("bUseTexture", true);
+	 pPlayerProgram->SetUniform("sampler0", 0);
+	 pPlayerProgram->SetUniform("CubeMapTex", cubeMapTextureUnit);
+	 pPlayerProgram->SetUniform("matrices.projMatrix", m_pCamera->GetPerspectiveProjectionMatrix());
+	 pPlayerProgram->SetUniform("light1.position", viewMatrix*lightPosition1); // Position of light source *in eye coordinates*
+	 pPlayerProgram->SetUniform("light1.La", glm::vec3(1.0f));		// Ambient colour of light
+	 pPlayerProgram->SetUniform("light1.Ld", glm::vec3(1.0f));		// Diffuse colour of light
+	 pPlayerProgram->SetUniform("light1.Ls", glm::vec3(1.0f));		// Specular colour of light
+	 pPlayerProgram->SetUniform("material1.Ma", glm::vec3(1.0f));	// Ambient material reflectance
+	 pPlayerProgram->SetUniform("material1.Md", glm::vec3(0.0f));	// Diffuse material reflectance
+	 pPlayerProgram->SetUniform("material1.Ms", glm::vec3(0.0f));	// Specular material reflectance
+	 pPlayerProgram->SetUniform("material1.shininess", 15.0f);		// Shininess material property
+	 pPlayerProgram->SetUniform("renderSkybox", false);
+	 pPlayerProgram->SetUniform("jellyScale", m_playerScale);
+	 pPlayerProgram->SetUniform("hitColour", m_hitColour);
+	 //render player
+	 modelViewMatrixStack.Push();
+		 modelViewMatrixStack.Translate(m_currentPlayerPos + glm::vec3(0, 1, 0));
+		 modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 180.0f);
+		 modelViewMatrixStack.Scale(0.025f);
+		 pPlayerProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
+		 pPlayerProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
+		 m_pPlayer->Render();
+	 modelViewMatrixStack.Pop();
 
-	
-
-	/*
-	int i = 10;
-
-	while (i > 0) {
-		// Render the horse
-		modelViewMatrixStack.Push();
-		modelViewMatrixStack.Translate(glm::vec3(i*10.0f, 0, i*10.0f));
-		modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 180.0f);
-		modelViewMatrixStack.Scale(2.5f);
-		pJellyProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
-		pJellyProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
-		m_pHorseMesh->Render();
-		modelViewMatrixStack.Pop();
-
-		i--;
-	}
-	*/
 
 
+	//to hide back faces of other objects
+	 glEnable(GL_CULL_FACE);
 
 	// Draw the 2D graphics after the 3D graphics
 	DisplayFrameRate();
@@ -688,16 +872,63 @@ void Game::Render()
 
 
 
+void Game::CheckDistance(float dist) {
+	//if enemy distance is closer than 3 ->hit the player
+	if (dist < 3) {
+		hit();
+	}
+	//if enemy distance is closer than 50 -> set regular enmey scale
+	else if (dist < 50) {
+		m_enemyScale = 0.3f;
+	}
+	//else diminish enely size 
+	else {
 
+		m_enemyScale = 0.3f - (dist - 50)*0.01f;
+		if (m_enemyScale< 0) {
+			m_enemyScale = 0;
+		}
+	}
+
+}
+
+
+void Game::hit() {
+	
+		m_gotHit = true;
+		m_hitWait = 100;
+		m_inputSpeed = 0;
+		m_hitColour = -0.5f;
+		m_playerScale = 1;
+}
 
 
 void Game::Cam1() {
 	m_pCamera->Update(m_dt);
 }
+
+float drifting = 0.004f;
 void Game::RailCam(int _type) {
-	float drifting = 0.003f;
-	m_currentDistance += (float)(drifting*m_dt) + m_inputSpeed;
-	m_inputSpeed -= (m_inputSpeed*m_dt - 0) / 200;
+	
+	//original lerp
+	if(!m_gotHit){
+	m_currentDistance += ((float)(drifting) + m_inputSpeed)*(float)m_dt;
+	m_inputSpeed -= ((m_inputSpeed - 0) / 400)*(float)m_dt;
+	m_playerScale -= ((m_playerScale - 1.0f)/100)*(float)m_dt;//player scale
+	m_hitColour -= ((m_hitColour- 0)/400)*(float)m_dt;
+	
+
+	}
+	else {
+		
+		if (m_hitWait > 0) {
+			m_hitWait -= 1 * (int)m_dt;
+		}
+		else {
+			m_gotHit = false;
+		}
+
+	}
 	//allow input
 	if (m_inputSpeed<0.01)m_limitInput = false;
 
@@ -714,7 +945,7 @@ void Game::RailCam(int _type) {
 	glm::vec3 b;
 	b = glm::normalize(glm::cross(n, t));
 
-	glm::vec3 pPos;
+	glm::vec3 pPos;//player pos
 	m_pCatmullRom->Sample(m_currentDistance + 5.0f, pPos);
 	m_currentPlayerPos = pPos;
 
@@ -737,49 +968,7 @@ void Game::RailCam(int _type) {
 }
 
 
-void Game::Cam2() {
 
-	//static float t = 0.0f;
-	//t += 0.0005f * (float)m_dt;
-	//if (t > 1.0f)
-	//	t = 0.0f;
-	//move along the spline
-
-	//drifting speed;
-	float drifting = 0.003f;
-	m_currentDistance += (float)(drifting*m_dt)+m_inputSpeed;
-	m_inputSpeed -= (m_inputSpeed*m_dt - 0) / 200;
-	//allow input
-	if(m_inputSpeed<0.01)m_limitInput = false;
-
-	glm::vec3 p;
-	glm::vec3 pNext;
-	m_pCatmullRom->Sample(m_currentDistance, p);
-	m_pCatmullRom->Sample(m_currentDistance + 1.0f, pNext);
-
-	//Frenet
-	glm::vec3 t;
-	t = glm::normalize(pNext - p);
-	//n and b not used here...
-	glm::vec3 n;
-	n = glm::normalize(glm::cross(t, glm::vec3(0, 1, 0)));
-	glm::vec3 b;
-	b = glm::normalize(glm::cross(n, t));
-
-	//----------------------------a little up on y axes
-	//normal
-	//m_pCamera->Set(p + glm::vec3(0, 2, 0), p + 10.0f*t, glm::vec3(0, 1, 0));
-	glm::vec3 pPos;
-	m_pCatmullRom->Sample(m_currentDistance+5.0f, pPos);
-	
-	
-	m_currentPlayerPos = pPos;
-	
-	//from a side
-	m_pCamera->Set(m_currentPlayerPos - n*10.0f + b*1.0f, m_currentPlayerPos, glm::vec3(0, 1, 0));
-	//top down
-	//m_pCamera->Set(m_currentPlayerPos+b*10.0f, m_currentPlayerPos, glm::vec3(0, 0, 1));
-}
 
 // Update method runs repeatedly with the Render method
 void Game::Update()
@@ -934,17 +1123,22 @@ LRESULT Game::ProcessEvents(HWND window,UINT message, WPARAM w_param, LPARAM l_p
 			m_camViewType = 0;
 			break;
 		case '2':
-			m_camViewType = 1;
+			m_camViewType = 2;
 			break;
 		case '3':
-			m_camViewType = 2;
+			m_camViewType = 1;
 			break;
 		case '4':
 			m_camViewType = 3;
 			break;
+		case 0x45://E
+			hit();
+			break;
 		case ' ':
 			if (m_limitInput)break;
-			m_inputSpeed = 0.1f;
+			m_inputSpeed = 0.05f;
+			//m_playerScale = 1.3f;
+			m_playerScale = 0.6f;
 			m_limitInput = true;
 			
 			break;

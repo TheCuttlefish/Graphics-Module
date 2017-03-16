@@ -46,6 +46,8 @@ out vec2 vTexCoord;	// Texture coordinate
 out vec3 worldPosition;	// used for skybox
 
 out float fIntensity;
+
+uniform bool wobble;
 // This function implements the Phong shading model
 // The code is based on the OpenGL 4.0 Shading Language Cookbook, Chapter 2, pp. 62 - 63, with a few tweaks. 
 // Please see Chapter 2 of the book for a detailed discussion.
@@ -108,10 +110,14 @@ normal = inNormal;
 
 	//jelly wobble
 	vec3 p = inPosition;
-	//p.x-=cos(p.y-_t/5)/4;
-	//p.y-=sin(p.x-_t/5)/4;
-
-
+	if(wobble){
+	p.x-=cos(p.y-_t/5);
+	p.y-=sin(p.x-_t/5);
+	p.z-=sin(p.z-_t/5);
+	}
+	//p.x-=cos(100-_t);
+	//p.y-=cos(100-_t);
+	//p.z-=cos(100-_t);
 	// Transform the vertex spatial position using 
 	gl_Position = matrices.projMatrix * matrices.modelViewMatrix * vec4(p, 1.0f);
 	//gl_Position = matrices.projMatrix * matrices.modelViewMatrix * vec4(inPosition, 1.0f);

@@ -169,5 +169,11 @@
     <None Include="resources\shaders\toonShader.vert">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="resources\shaders\player.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="resources\shaders\player.vert">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

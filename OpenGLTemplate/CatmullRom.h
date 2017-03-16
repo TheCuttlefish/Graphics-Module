@@ -23,7 +23,7 @@ public:
 	int CurrentLap(float d); // Return the currvent lap (starting from 0) based on distance along the control curve.
 
 	bool Sample(float d, glm::vec3 &p, glm::vec3 &up = glm::vec3(0, 0, 0)); // Return a point on the centreline based on a certain distance along the control curve.
-
+	float m_textureScale;
 private:
 
 	void SetControlPoints();

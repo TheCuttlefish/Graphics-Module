@@ -11,12 +11,13 @@ uniform bool bUseTexture;    // A flag indicating if texture-mapping should be a
 uniform bool renderSkybox;
 in vec3 worldPosition;
 uniform float _t;
-
+uniform bool moveTexture;
 void main()
 {
-
 vec2 newTex = vTexCoord;
+if(moveTexture){
 newTex.x-=_t/7;
+}
 	if (renderSkybox) {
 		vOutputColour = texture(CubeMapTex, worldPosition);
 

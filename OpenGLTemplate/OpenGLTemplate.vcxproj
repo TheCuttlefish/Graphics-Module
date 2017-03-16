@@ -136,6 +136,8 @@
     <None Include="resources\shaders\jellyShader.vert" />
     <None Include="resources\shaders\mainShader.frag" />
     <None Include="resources\shaders\mainShader.vert" />
+    <None Include="resources\shaders\player.frag" />
+    <None Include="resources\shaders\player.vert" />
     <None Include="resources\shaders\textShader.frag" />
     <None Include="resources\shaders\textShader.vert" />
     <None Include="resources\shaders\toonShader.frag" />

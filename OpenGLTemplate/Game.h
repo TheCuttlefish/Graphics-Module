@@ -44,6 +44,7 @@ private:
 	COpenAssetImportMesh *m_pRocks;
 	COpenAssetImportMesh *m_pCave;
 	COpenAssetImportMesh *m_pUrchin;
+	COpenAssetImportMesh *m_pPlayer;
 	CSphere *m_pSphere;
 	CHighResolutionTimer *m_pHighResolutionTimer;
 	CAudio *m_pAudio;
@@ -52,7 +53,7 @@ private:
 	CCube *m_pCube;
 	CTetrahedron *m_pTetrahedron;
 	CIcosahedron *m_pIcosahedron;
-
+	CPlane *m_grid;
 	
 	// Some other member variables
 	double m_dt;
@@ -65,13 +66,21 @@ private:
 	float m_inputSpeed;
 	bool m_limitInput;
 	glm::vec3 m_currentPlayerPos;
+	float m_playerScale;
+	int m_enemyCount = 30;
+	bool m_gotHit = false;//check if player got hit
+	int m_hitWait=0;//timer for waiting when player gets hit
+	float m_hitColour = 0;//colour of player's damage;
+	float m_enemyScale = 0.3f;//scale of the enemies
+	vector<glm::vec3> m_enemyPos{ m_enemyCount };//pos of enemies
 public:
 	Game();
 	~Game();
 	//z
 	void Cam1();
-	void Cam2();
 	void RailCam(int type);
+	void hit();
+	void CheckDistance(float dist);
 	static Game& GetInstance();
 	LRESULT ProcessEvents(HWND window,UINT message, WPARAM w_param, LPARAM l_param);
 	void SetHinstance(HINSTANCE hinstance);

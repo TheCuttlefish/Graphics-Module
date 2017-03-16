@@ -61,6 +61,7 @@ void GameWindow::RegisterSimpleOpenGLClass(HINSTANCE hInstance)
 // Create a dummy window, intialise GLEW, and then delete the dummy window
 bool GameWindow::InitGLEW()
 {
+	
 	static bool bGlewInitialized = false;
 	if(bGlewInitialized) return true;
 
@@ -83,7 +84,7 @@ bool GameWindow::InitGLEW()
 	pfd.cColorBits = 32;
 	pfd.cDepthBits = 32;
 	pfd.iLayerType = PFD_MAIN_PLANE;
- 
+	
 	int iPixelFormat = ChoosePixelFormat(m_hdc, &pfd);
 	if (iPixelFormat == 0)return false;
 
@@ -151,7 +152,7 @@ void GameWindow::CreateGameWindow(string sTitle)
 	wcex.lpszClassName = m_appName.c_str();
 
 	wcex.lpszMenuName = NULL;
-
+	
 	RegisterClassEx(&wcex);
 	
 	
@@ -234,8 +235,18 @@ void GameWindow::InitOpenGL()
 			WGL_PIXEL_TYPE_ARB, WGL_TYPE_RGBA_ARB,
 			WGL_COLOR_BITS_ARB, 32,
 			WGL_DEPTH_BITS_ARB, 24,
-			WGL_STENCIL_BITS_ARB, 8,
-			0 // End of attributes list
+			WGL_STENCIL_BITS_ARB, 8,//8
+			WGL_SAMPLE_BUFFERS_ARB,1,
+			WGL_SAMPLES_ARB, 8,
+			0
+			//zhan MSAA
+			//WGL_SAMPLE_BUFFERS_ARB,GL_TRUE,
+			//WGL_SAMPLES_ARB, 4 
+			
+			// End of attributes list
+			
+
+			
 		};
 		int iContextAttribs[] =
 		{
@@ -247,10 +258,10 @@ void GameWindow::InitOpenGL()
 
 		int iPixelFormat, iNumFormats;
 		wglChoosePixelFormatARB(m_hdc, iPixelFormatAttribList, NULL, 1, &iPixelFormat, (UINT*)&iNumFormats);
-
+		
 		// PFD seems to be only redundant parameter now
 		if(!SetPixelFormat(m_hdc, iPixelFormat, &pfd))return;
-
+		
 		m_hrc = wglCreateContextAttribsARB(m_hdc, 0, iContextAttribs);
 		// If everything went OK
 		if(m_hrc) wglMakeCurrent(m_hdc, m_hrc);
