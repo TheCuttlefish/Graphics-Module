@@ -3,9 +3,9 @@
 #include "Common.h"
 #include "GameWindow.h"
 
-// Classes used in game.  For a new class, declare it here and provide a pointer to an object of this class below.  Then, in Game.cpp, 
-// include the header.  In the Game constructor, set the pointer to NULL and in Game::Initialise, create a new object.  Don't forget to 
-// delete the object in the destructor.   
+// Classes used in game.  For a new class, declare it here and provide a pointer to an object of this class below.  Then, in Game.cpp,
+// include the header.  In the Game constructor, set the pointer to NULL and in Game::Initialise, create a new object.  Don't forget to
+// delete the object in the destructor.
 class CCamera;
 class CSkybox;
 class CShader;
@@ -54,7 +54,7 @@ private:
 	CTetrahedron *m_pTetrahedron;
 	CIcosahedron *m_pIcosahedron;
 	CPlane *m_grid;
-	
+
 	// Some other member variables
 	double m_dt;
 	int m_framesPerSecond;
@@ -72,6 +72,24 @@ private:
 	int m_hitWait=0;//timer for waiting when player gets hit
 	float m_hitColour = 0;//colour of player's damage;
 	float m_enemyScale = 0.3f;//scale of the enemies
+	float m_globalLight = 1.0f;
+	bool m_dayTime = true;//daytime - night time
+	bool m_fogActive = true;//activisation of fog
+
+
+	//0.23f .7f 0.89f - day
+	//night - .02f, .12f, .14f
+	//0.1f, 0.3f, 0.3f - original
+	glm::vec3 m_fogColour = glm::vec3(.23f, .7f, .89f);
+	glm::vec3 m_fogDayColour = glm::vec3(.23f, .7f, .89f);
+	glm::vec3 m_fogNightColour = glm::vec3(.02f, .12f, .14f);
+	float m_fogDist = 200.0f;
+	float m_fogDistMin = 200.0f;
+	float m_fogDistMax = 2000.0f;
+	
+	glm::vec3 m_colour1 = glm::vec3(0.0f, 0.8f, 0.8f);//dark turquoise
+	glm::vec3 m_colour2 = glm::vec3(0.5f, 0.9, 0.5f);//spring green
+	//float m_globalAmbience = 1.0f;
 	vector<glm::vec3> m_enemyPos{ m_enemyCount };//pos of enemies
 public:
 	Game();
@@ -81,6 +99,8 @@ public:
 	void RailCam(int type);
 	void hit();
 	void CheckDistance(float dist);
+	void DayNightSystem();
+	void FogToggle();
 	static Game& GetInstance();
 	LRESULT ProcessEvents(HWND window,UINT message, WPARAM w_param, LPARAM l_param);
 	void SetHinstance(HINSTANCE hinstance);

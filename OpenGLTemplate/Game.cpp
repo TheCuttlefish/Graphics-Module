@@ -156,7 +156,7 @@ void Game::Initialise()
 	m_pCatmullRom->SetTexture("resources\\textures\\flow5.png");
 	m_pCatmullRom->CreateCentreline();
 	m_pCatmullRom->CreateOffsetCurves();
-	
+
 	//current distance
 	m_currentDistance = 0.0f;
 	//cam view
@@ -246,10 +246,10 @@ void Game::Initialise()
 	// Skybox downloaded from http://www.akimbo.in/forum/viewtopic.php?f=10&t=9
 	m_pSkybox->Create(2500.0f);
 
-	// Create the planar terrain
+	// Create the planar terrain                      "seafloor3.png"
 	m_pPlanarTerrain->Create("resources\\textures\\", "seafloor3.png", 2000.0f, 2000.0f, 20.0f); // Texture made myself (25 Feb 2017)
-	//m_grid->Create("resources\\textures\\", "grid2.png", 600.0f, 600.0f, 1.0f);
-	
+	m_grid->Create("resources\\textures\\", "sun_rays.png", 2000.0f, 2000.0f, 100.0f);// Texture made myself (19 Mar 2017)
+
 	m_pFtFont->LoadSystemFont("arial.ttf", 32);
 	m_pFtFont->SetShaderProgram(pFontProgram);
 
@@ -281,9 +281,6 @@ void Game::Initialise()
 
 	glEnable(GL_CULL_FACE);
 
-	//MSAA
-	//glEnable(GL_MULTISAMPLE_ARB);
-	//glEnable(GL_MULTISAMPLE);
 
 	// Initialise audio and play background music
 	m_pAudio->Initialise();
@@ -336,19 +333,45 @@ void Game::Render()
 
 
 	// Set light and materials in main shader program
-	glm::vec4 lightPosition1 = glm::vec4(-100, 100, -100, 1); // Position of light source *in world coordinates*
-	pMainProgram->SetUniform("light1.position", viewMatrix*lightPosition1); // Position of light source *in eye coordinates*
-	pMainProgram->SetUniform("light1.La", glm::vec3(1.0f));		// Ambient colour of light
-	pMainProgram->SetUniform("light1.Ld", glm::vec3(1.0f));		// Diffuse colour of light
-	pMainProgram->SetUniform("light1.Ls", glm::vec3(1.0f));		// Specular colour of light
-	pMainProgram->SetUniform("material1.Ma", glm::vec3(1.0f));	// Ambient material reflectance
-	pMainProgram->SetUniform("material1.Md", glm::vec3(0.0f));	// Diffuse material reflectance
-	pMainProgram->SetUniform("material1.Ms", glm::vec3(0.0f));	// Specular material reflectance
-	pMainProgram->SetUniform("material1.shininess", 15.0f);		// Shininess material property
+	glm::vec4 lightPosition1 = glm::vec4(0,100,0, 1); // Position of light source *in world coordinates*
+		pMainProgram->SetUniform("light1.position", viewMatrix*lightPosition1); // Position of light source *in eye coordinates*
+		pMainProgram->SetUniform("light1.La", glm::vec3(m_globalLight));	//1	// Ambient colour of light
+		pMainProgram->SetUniform("light1.Ld", glm::vec3(m_globalLight));	//1	// Diffuse colour of light
+		pMainProgram->SetUniform("light1.Ls", glm::vec3(m_globalLight));	//1	// Specular colour of light
 
+		pMainProgram->SetUniform("material1.Ma", glm::vec3(m_globalLight-0.1f));	// 0 Ambient material reflectance
+		pMainProgram->SetUniform("material1.Md", glm::vec3(1.0f-m_globalLight*0.9));	// 1 Diffuse material reflectance
+		pMainProgram->SetUniform("material1.Ms", glm::vec3(0.5f));	// 0.5 Specular material reflectance
 
+		pMainProgram->SetUniform("material1.shininess", 15.0f);		// Shininess material property
+		//spot light things!
+		pMainProgram->SetUniform("light1.direction", glm::normalize(viewNormalMatrix*glm::vec3(0, -1, 0)));
+		pMainProgram->SetUniform("light1.exponent", 20.0f);// - strengths 1 =very , 1000000 not
+		pMainProgram->SetUniform("light1.cutoff", 30.0f);//30 - angle
 
-																//--my shader!!
+		
+	glm::vec4 spotLightPos1 = glm::vec4(100, 120, 0, 1);//spotlight1
+		pMainProgram->SetUniform("spotLight1.position", viewMatrix*spotLightPos1); // Position of light source *in eye coordinates*
+		pMainProgram->SetUniform("spotLight1.La", glm::vec3(m_colour1));	//1	// Ambient colour of light
+		pMainProgram->SetUniform("spotLight1.Ld", glm::vec3(m_colour1));	//1	// Diffuse colour of light
+		pMainProgram->SetUniform("spotLight1.Ls", glm::vec3(m_colour1));	//1	// Specular colour of light
+		pMainProgram->SetUniform("spotLight1.direction", glm::normalize(viewNormalMatrix*glm::vec3(0, -1, 0)));
+		pMainProgram->SetUniform("spotLight1.exponent", 10.0f);// - strengths 1 =very , 1000000 not
+		pMainProgram->SetUniform("spotLight1.cutoff", 150.0f);//30 - angle
+
+	glm::vec4 spotLightPos2 = glm::vec4(-100, 180, 0, 1);//spotlight2
+		pMainProgram->SetUniform("spotLight2.position", viewMatrix*spotLightPos2); // Position of light source *in eye coordinates*
+		pMainProgram->SetUniform("spotLight2.La", glm::vec3(m_colour2));	//1	// Ambient colour of light
+		pMainProgram->SetUniform("spotLight2.Ld", glm::vec3(m_colour2));	//1	// Diffuse colour of light
+		pMainProgram->SetUniform("spotLight2.Ls", glm::vec3(m_colour2));	//1	// Specular colour of light
+		pMainProgram->SetUniform("spotLight2.direction", glm::normalize(viewNormalMatrix*glm::vec3(0, -1, 0)));
+		pMainProgram->SetUniform("spotLight2.exponent", 10.0f);// - strengths 1 =very , 1000000 not
+		pMainProgram->SetUniform("spotLight2.cutoff", 100.0f);//30 - angle
+		//fog ---from OpenGL 4.0 cookbook
+		pMainProgram->SetUniform("Fog.maxDist", m_fogDist);//where to add full fog
+		pMainProgram->SetUniform("Fog.minDist", 0.0f);//when to start fog
+		pMainProgram->SetUniform("Fog.colour", m_fogColour);// fog colour
+	//--my shader!!
 
 
 
@@ -371,30 +394,26 @@ void Game::Render()
 		 modelViewMatrixStack.Push();
 	 	pMainProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
 	 	pMainProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
-	
+
 	 	m_pPlanarTerrain->Render();
 	 modelViewMatrixStack.Pop();
 
-	
 
-
-	// Turn on diffuse + specular materials
-	pMainProgram->SetUniform("material1.Ma", glm::vec3(0.5f));	// Ambient material reflectance
-	pMainProgram->SetUniform("material1.Md", glm::vec3(0.5f));	// Diffuse material reflectance
-	pMainProgram->SetUniform("material1.Ms", glm::vec3(1.0f));	// Specular material reflectance
-
+	 /*
+	 horses
+	for(int i = 0; i<20 ; i++){
 	// Render the horse
 	modelViewMatrixStack.Push();
-	modelViewMatrixStack.Translate(glm::vec3(100.0f, 0.0f, 300.0f));
+	modelViewMatrixStack.Translate(glm::vec3(0.0f, 0.0f, 5.0f*i));
 	modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 180.0f);
 	modelViewMatrixStack.Scale(2.5f);
 	pMainProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
 	pMainProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
 	m_pHorseMesh->Render();
 	modelViewMatrixStack.Pop();
-	
 
-	
+	}
+	*/
 
 
 
@@ -428,53 +447,19 @@ void Game::Render()
 
 	// Render the cube
 	 modelViewMatrixStack.Push();
-	 	modelViewMatrixStack.Translate(glm::vec3(0.0f, 50.0f, 0.0f));
+	 	modelViewMatrixStack.Translate(glm::vec3(110.0f, 5.0f, 50.0f));
 	 	modelViewMatrixStack.Scale(5.0f);
 	 	pMainProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
 	 	pMainProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
-	 	//pMainProgram->SetUniform("bUseTexture", false);
 	 	m_pCube->Render();
 	 modelViewMatrixStack.Pop();
 
-	 modelViewMatrixStack.Push();
-		 modelViewMatrixStack.Translate(glm::vec3(100.0f, 50.0f, 0.0f));
-		 modelViewMatrixStack.Scale(5.0f);
-		 pMainProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
-		 pMainProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
-		 m_pCube->Render();
-	 modelViewMatrixStack.Pop();
-
-	// modelViewMatrixStack.Push();
-	// modelViewMatrixStack.Translate(glm::vec3(-300.0f, 50.0f, 0.0f));
-	// modelViewMatrixStack.Scale(5.0f);
-	// pMainProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
-	// pMainProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
-	// m_pCube->Render();
-	// modelViewMatrixStack.Pop();
-
-	// modelViewMatrixStack.Push();
-	// modelViewMatrixStack.Translate(glm::vec3(0.0f, 50.0f, 300.0f));
-	// modelViewMatrixStack.Scale(5.0f);
-	// pMainProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
-	// pMainProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
-	// m_pCube->Render();
-	// modelViewMatrixStack.Pop();
-	//
-	// modelViewMatrixStack.Push();
-	// modelViewMatrixStack.Translate(glm::vec3(0.0f, 50.0f, -600.0f));
-	// modelViewMatrixStack.Scale(5.0f);
-	// pMainProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
-	// pMainProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
-	// m_pCube->Render();
-	// modelViewMatrixStack.Pop();
-
 	//ICOSAHEDRON
 	 modelViewMatrixStack.Push();
-	 modelViewMatrixStack.Translate(glm::vec3(0.0f, 70.0f, 0.0f));
+	 modelViewMatrixStack.Translate(glm::vec3(130.0f, 5.0f, 50.0f));
 	 modelViewMatrixStack.Scale(5.0f);
 	 pMainProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
 	 pMainProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
-	 //pMainProgram->SetUniform("bUseTexture", true);//off
 	 m_pIcosahedron->Render();
 	 modelViewMatrixStack.Pop();
 
@@ -482,11 +467,10 @@ void Game::Render()
 
 	//TERTRAHEDRON
 	 modelViewMatrixStack.Push();
-	 	modelViewMatrixStack.Translate(glm::vec3(0.0f, 60.0f, 0.0f));
+	 	modelViewMatrixStack.Translate(glm::vec3(150.0f, 5.0f, 50.0f));
 	 	modelViewMatrixStack.Scale(5.0f);
 	 	pMainProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
 	 	pMainProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
-	 	//pMainProgram->SetUniform("bUseTexture", false);//off
 	 	m_pTetrahedron->Render();
 	 modelViewMatrixStack.Pop();
 
@@ -501,22 +485,47 @@ void Game::Render()
 	pToonProgram->SetUniform("CubeMapTex", cubeMapTextureUnit);
 	pToonProgram->SetUniform("matrices.projMatrix", m_pCamera->GetPerspectiveProjectionMatrix());
 	pToonProgram->SetUniform("light1.position", viewMatrix*lightPosition1); // Position of light source *in eye coordinates*
-	pToonProgram->SetUniform("light1.La", glm::vec3(1.0f));		// Ambient colour of light
-	pToonProgram->SetUniform("light1.Ld", glm::vec3(1.0f));		// Diffuse colour of light
-	pToonProgram->SetUniform("light1.Ls", glm::vec3(1.0f));		// Specular colour of light
-	pToonProgram->SetUniform("material1.Ma", glm::vec3(1.0f));	// Ambient material reflectance
-	pToonProgram->SetUniform("material1.Md", glm::vec3(0.0f));	// Diffuse material reflectance
-	pToonProgram->SetUniform("material1.Ms", glm::vec3(0.0f));	// Specular material reflectance
+	pToonProgram->SetUniform("light1.La", glm::vec3(m_globalLight));		// Ambient colour of light
+	pToonProgram->SetUniform("light1.Ld", glm::vec3(m_globalLight));		// Diffuse colour of light
+	pToonProgram->SetUniform("light1.Ls", glm::vec3(m_globalLight));		// Specular colour of light
+	pToonProgram->SetUniform("material1.Ma", glm::vec3(m_globalLight/2));	// Ambient material reflectance
+	pToonProgram->SetUniform("material1.Md", glm::vec3(0.5f));	// Diffuse material reflectance
+	pToonProgram->SetUniform("material1.Ms", glm::vec3(0.5f));	// Specular material reflectance
 	pToonProgram->SetUniform("material1.shininess", 15.0f);		// Shininess material property
 	pToonProgram->SetUniform("setColour", glm::vec3(.5, .5, .6));
 	pToonProgram->SetUniform("wobble", true);
+
+
+	//spotlight1
+	pToonProgram->SetUniform("spotLight1.position", viewMatrix*spotLightPos1); // Position of light source *in eye coordinates*
+	pToonProgram->SetUniform("spotLight1.La", glm::vec3(m_colour1));	//1	// Ambient colour of light
+	pToonProgram->SetUniform("spotLight1.Ld", glm::vec3(m_colour1));	//1	// Diffuse colour of light
+	pToonProgram->SetUniform("spotLight1.Ls", glm::vec3(m_colour1));	//1	// Specular colour of light
+	pToonProgram->SetUniform("spotLight1.direction", glm::normalize(viewNormalMatrix*glm::vec3(0, -1, 0)));
+	pToonProgram->SetUniform("spotLight1.exponent", 10.0f);// - strengths 1 =very , 1000000 not
+	pToonProgram->SetUniform("spotLight1.cutoff", 150.0f);//30 - angle
+
+															//spotlight2
+	pToonProgram->SetUniform("spotLight2.position", viewMatrix*spotLightPos2); // Position of light source *in eye coordinates*
+	pToonProgram->SetUniform("spotLight2.La", glm::vec3(m_colour2));	//1	// Ambient colour of light
+	pToonProgram->SetUniform("spotLight2.Ld", glm::vec3(m_colour2));	//1	// Diffuse colour of light
+	pToonProgram->SetUniform("spotLight2.Ls", glm::vec3(m_colour2));	//1	// Specular colour of light
+	pToonProgram->SetUniform("spotLight2.direction", glm::normalize(viewNormalMatrix*glm::vec3(0, -1, 0)));
+	pToonProgram->SetUniform("spotLight2.exponent", 10.0f);// - strengths 1 =very , 1000000 not
+	pToonProgram->SetUniform("spotLight2.cutoff", 100.0f);//30 - angle
+
+	//fog ---from OpenGL 4.0 cookbook
+	pToonProgram->SetUniform("Fog.maxDist", m_fogDist);//where to add full fog
+	pToonProgram->SetUniform("Fog.minDist", 0.0f);//when to start fog
+	pToonProgram->SetUniform("Fog.colour", m_fogColour);// fog colour
+
 	//urchin
 
-	
+
 	 //set that to p!!!
 	 glm::vec3 pos = glm::vec3(0);
 	 glm::vec3 move = glm::vec3(0,-2+cos(m_time/3)*4, 0);
-	 
+
 
 	 for (int i = 0; i < m_enemyCount-1; i++) {
 		 m_enemyPos[i] = pos + move;
@@ -524,7 +533,7 @@ void Game::Render()
 		 m_pCatmullRom->Sample(40.0f*i, pos);
 		 modelViewMatrixStack.Translate(pos + move);
 		 modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 60.0f);
-		 
+
 		 modelViewMatrixStack.Scale(m_enemyScale);
 		 pToonProgram->SetUniform("setColour", glm::vec3(.3, 0, 0));
 		 pToonProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
@@ -667,8 +676,8 @@ void Game::Render()
 
 
 
-	glEnable(GL_BLEND);
-	
+	//glEnable(GL_BLEND);
+
 
 
 	CShaderProgram *pJellyProgram = (*m_pShaderPrograms)[2];
@@ -679,30 +688,70 @@ void Game::Render()
 	pJellyProgram->SetUniform("CubeMapTex", cubeMapTextureUnit);
 	pJellyProgram->SetUniform("matrices.projMatrix", m_pCamera->GetPerspectiveProjectionMatrix());
 	pJellyProgram->SetUniform("light1.position", viewMatrix*lightPosition1); // Position of light source *in eye coordinates*
-	pJellyProgram->SetUniform("light1.La", glm::vec3(1.0f));		// Ambient colour of light
-	pJellyProgram->SetUniform("light1.Ld", glm::vec3(1.0f));		// Diffuse colour of light
-	pJellyProgram->SetUniform("light1.Ls", glm::vec3(1.0f));		// Specular colour of light
-	pJellyProgram->SetUniform("material1.Ma", glm::vec3(1.0f));	// Ambient material reflectance
-	pJellyProgram->SetUniform("material1.Md", glm::vec3(0.0f));	// Diffuse material reflectance
-	pJellyProgram->SetUniform("material1.Ms", glm::vec3(0.0f));	// Specular material reflectance
+	pJellyProgram->SetUniform("light1.La", glm::vec3(m_globalLight));		// Ambient colour of light
+	pJellyProgram->SetUniform("light1.Ld", glm::vec3(m_globalLight));		// Diffuse colour of light
+	pJellyProgram->SetUniform("light1.Ls", glm::vec3(m_globalLight));		// Specular colour of light
+														//(.2f+m_globalLight*0.2f));
+	pJellyProgram->SetUniform("material1.Ma", glm::vec3(.2f + m_globalLight*0.8f));	// Ambient material reflectance
+	pJellyProgram->SetUniform("material1.Md", glm::vec3(1- m_globalLight*0.9f));	// Diffuse material reflectance
+	pJellyProgram->SetUniform("material1.Ms", glm::vec3(0.5f));	// Specular material reflectance
+
+
+		// Ambient material reflectance
+	//pPlayerProgram->SetUniform("material1.Md", glm::vec3(.5f + m_globalLight*0.5f));	// Diffuse material reflectance
+	//pPlayerProgram->SetUniform("material1.Ms", glm::vec3(0.5f));
+
+
+
+
+
+
 	pJellyProgram->SetUniform("material1.shininess", 15.0f);		// Shininess material property
-	pJellyProgram->SetUniform("renderSkybox", false);
-	pJellyProgram->SetUniform("moveTexture", false);
+	pJellyProgram->SetUniform("rays", false);
 	pJellyProgram->SetUniform("calm", true);
+	pJellyProgram->SetUniform("ambientControl", m_globalLight);
+
+
+	//spotlight1
+	pJellyProgram->SetUniform("spotLight1.position", viewMatrix*spotLightPos1); // Position of light source *in eye coordinates*
+	pJellyProgram->SetUniform("spotLight1.La", glm::vec3(m_colour1));	//1	// Ambient colour of light
+	pJellyProgram->SetUniform("spotLight1.Ld", glm::vec3(m_colour1));	//1	// Diffuse colour of light
+	pJellyProgram->SetUniform("spotLight1.Ls", glm::vec3(m_colour1));	//1	// Specular colour of light
+	pJellyProgram->SetUniform("spotLight1.direction", glm::normalize(viewNormalMatrix*glm::vec3(0, -1, 0)));
+	pJellyProgram->SetUniform("spotLight1.exponent", 10.0f);// - strengths 1 =very , 1000000 not
+	pJellyProgram->SetUniform("spotLight1.cutoff", 150.0f);//30 - angle
+
+	//spotlight2
+	pJellyProgram->SetUniform("spotLight2.position", viewMatrix*spotLightPos2); // Position of light source *in eye coordinates*
+	pJellyProgram->SetUniform("spotLight2.La", glm::vec3(m_colour2));	//1	// Ambient colour of light
+	pJellyProgram->SetUniform("spotLight2.Ld", glm::vec3(m_colour2));	//1	// Diffuse colour of light
+	pJellyProgram->SetUniform("spotLight2.Ls", glm::vec3(m_colour2));	//1	// Specular colour of light
+	pJellyProgram->SetUniform("spotLight2.direction", glm::normalize(viewNormalMatrix*glm::vec3(0, -1, 0)));
+	pJellyProgram->SetUniform("spotLight2.exponent", 10.0f);// - strengths 1 =very , 1000000 not
+	pJellyProgram->SetUniform("spotLight2.cutoff", 100.0f);//30 - angle
+
+	 //fog ---from OpenGL 4.0 cookbook
+	pJellyProgram->SetUniform("Fog.maxDist", m_fogDist);//where to add full fog
+	pJellyProgram->SetUniform("Fog.minDist", 0.0f);//when to start fog
+	pJellyProgram->SetUniform("Fog.colour", m_fogColour);// fog colour
+
+
+
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	//glBlendFunc(GL_SRC_ALPHA, GL_SRC1_RGB);
 	//Render grid
+	pJellyProgram->SetUniform("rays", true);
 	modelViewMatrixStack.Push();
 		modelViewMatrixStack.Translate(glm::vec3(0, 1, 0));
-		modelViewMatrixStack.Rotate(glm::vec3(1.0f, 0.0f, 0.0f), 180.0f);
-		//modelViewMatrixStack.Rotate(glm::vec3(1.0f, 0.0f, 0.0f), 180.0f);
+		//modelViewMatrixStack.Rotate(glm::vec3(0.0f, 0.0f, 0.0f), 180.0f);
+		modelViewMatrixStack.Rotate(glm::vec3(0.0f, 0.1f, 0.0f), 180.0f);
 		pJellyProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
 		pJellyProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
 		m_grid->Render();
 	modelViewMatrixStack.Pop();
+	pJellyProgram->SetUniform("rays", false);
 
-	
 
 	//Render a jellyFish
 	modelViewMatrixStack.Push();
@@ -735,7 +784,7 @@ void Game::Render()
 		 pJellyProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
 		 m_pSeaweed->Render();
 	 modelViewMatrixStack.Pop();
-	 
+
 	 modelViewMatrixStack.Push();
 		 modelViewMatrixStack.Translate(glm::vec3(40.0f, 0.0f, 40.0f));
 		 modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 20.0f);
@@ -745,7 +794,7 @@ void Game::Render()
 		 m_pSeaweed->Render();
 	 modelViewMatrixStack.Pop();
 
-	
+
 	modelViewMatrixStack.Push();
 		 modelViewMatrixStack.Translate(glm::vec3(-100.0f, 0.0f, 100.0f));
 		 modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 20.0f);
@@ -799,7 +848,7 @@ void Game::Render()
 		 pJellyProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
 		 m_pSeaweed->Render();
 	 modelViewMatrixStack.Pop();
-	
+
 	 modelViewMatrixStack.Push();
 		 modelViewMatrixStack.Translate(glm::vec3(-90.0f, 0.0f, 20.0f));
 		 modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 20.0f);
@@ -814,8 +863,6 @@ void Game::Render()
 	 glDisable(GL_CULL_FACE);
 	 //catmullrom
 	 pJellyProgram->SetUniform("calm", true);
-	 pJellyProgram->SetUniform("moveTexture", true);
-
 	 modelViewMatrixStack.Push();
 		 pJellyProgram->SetUniform("bUseTexture", true); // turn off texturing
 		 pJellyProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
@@ -836,24 +883,48 @@ void Game::Render()
 	 pPlayerProgram->SetUniform("CubeMapTex", cubeMapTextureUnit);
 	 pPlayerProgram->SetUniform("matrices.projMatrix", m_pCamera->GetPerspectiveProjectionMatrix());
 	 pPlayerProgram->SetUniform("light1.position", viewMatrix*lightPosition1); // Position of light source *in eye coordinates*
-	 pPlayerProgram->SetUniform("light1.La", glm::vec3(1.0f));		// Ambient colour of light
-	 pPlayerProgram->SetUniform("light1.Ld", glm::vec3(1.0f));		// Diffuse colour of light
-	 pPlayerProgram->SetUniform("light1.Ls", glm::vec3(1.0f));		// Specular colour of light
-	 pPlayerProgram->SetUniform("material1.Ma", glm::vec3(1.0f));	// Ambient material reflectance
-	 pPlayerProgram->SetUniform("material1.Md", glm::vec3(0.0f));	// Diffuse material reflectance
-	 pPlayerProgram->SetUniform("material1.Ms", glm::vec3(0.0f));	// Specular material reflectance
+	 pPlayerProgram->SetUniform("light1.La", glm::vec3(0.5f+m_globalLight*0.5f));		// Ambient colour of light
+	 pPlayerProgram->SetUniform("light1.Ld", glm::vec3(m_globalLight));		// Diffuse colour of light
+	 pPlayerProgram->SetUniform("light1.Ls", glm::vec3(m_globalLight));		// Specular colour of light
+	 pPlayerProgram->SetUniform("material1.Ma", glm::vec3(.5f + m_globalLight*0.5f));	// Ambient material reflectance
+	 pPlayerProgram->SetUniform("material1.Md", glm::vec3(.5f+m_globalLight*0.5f));	// Diffuse material reflectance
+	 pPlayerProgram->SetUniform("material1.Ms", glm::vec3(0.5f));	// Specular material reflectance
 	 pPlayerProgram->SetUniform("material1.shininess", 15.0f);		// Shininess material property
 	 pPlayerProgram->SetUniform("renderSkybox", false);
 	 pPlayerProgram->SetUniform("jellyScale", m_playerScale);
 	 pPlayerProgram->SetUniform("hitColour", m_hitColour);
+
+
+	 //spotlight1
+	 pPlayerProgram->SetUniform("spotLight1.position", viewMatrix*spotLightPos1); // Position of light source *in eye coordinates*
+	 pPlayerProgram->SetUniform("spotLight1.La", glm::vec3(m_colour1));	//1	// Ambient colour of light
+	 pPlayerProgram->SetUniform("spotLight1.Ld", glm::vec3(m_colour1));	//1	// Diffuse colour of light
+	 pPlayerProgram->SetUniform("spotLight1.Ls", glm::vec3(m_colour1));	//1	// Specular colour of light
+	 pPlayerProgram->SetUniform("spotLight1.direction", glm::normalize(viewNormalMatrix*glm::vec3(0, -1, 0)));
+	 pPlayerProgram->SetUniform("spotLight1.exponent", 10.0f);// - strengths 1 =very , 1000000 not
+	 pPlayerProgram->SetUniform("spotLight1.cutoff", 150.0f);//30 - angle
+
+															//spotlight2
+	 pPlayerProgram->SetUniform("spotLight2.position", viewMatrix*spotLightPos2); // Position of light source *in eye coordinates*
+	 pPlayerProgram->SetUniform("spotLight2.La", glm::vec3(m_colour2));	//1	// Ambient colour of light
+	 pPlayerProgram->SetUniform("spotLight2.Ld", glm::vec3(m_colour2));	//1	// Diffuse colour of light
+	 pPlayerProgram->SetUniform("spotLight2.Ls", glm::vec3(m_colour2));	//1	// Specular colour of light
+	 pPlayerProgram->SetUniform("spotLight2.direction", glm::normalize(viewNormalMatrix*glm::vec3(0, -1, 0)));
+	 pPlayerProgram->SetUniform("spotLight2.exponent", 10.0f);// - strengths 1 =very , 1000000 not
+	 pPlayerProgram->SetUniform("spotLight2.cutoff", 100.0f);//30 - angle
+
+
+
+
 	 //render player
 	 modelViewMatrixStack.Push();
 		 modelViewMatrixStack.Translate(m_currentPlayerPos + glm::vec3(0, 1, 0));
 		 modelViewMatrixStack.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 180.0f);
-		 modelViewMatrixStack.Scale(0.025f);
+		modelViewMatrixStack.Scale(0.025f);
 		 pPlayerProgram->SetUniform("matrices.modelViewMatrix", modelViewMatrixStack.Top());
 		 pPlayerProgram->SetUniform("matrices.normalMatrix", m_pCamera->ComputeNormalMatrix(modelViewMatrixStack.Top()));
-		 m_pPlayer->Render();
+		m_pPlayer->Render();
+		
 	 modelViewMatrixStack.Pop();
 
 
@@ -881,7 +952,7 @@ void Game::CheckDistance(float dist) {
 	else if (dist < 50) {
 		m_enemyScale = 0.3f;
 	}
-	//else diminish enely size 
+	//else diminish enely size
 	else {
 
 		m_enemyScale = 0.3f - (dist - 50)*0.01f;
@@ -894,7 +965,7 @@ void Game::CheckDistance(float dist) {
 
 
 void Game::hit() {
-	
+
 		m_gotHit = true;
 		m_hitWait = 100;
 		m_inputSpeed = 0;
@@ -909,18 +980,24 @@ void Game::Cam1() {
 
 float drifting = 0.004f;
 void Game::RailCam(int _type) {
+
 	
+	
+
+
+
 	//original lerp
 	if(!m_gotHit){
 	m_currentDistance += ((float)(drifting) + m_inputSpeed)*(float)m_dt;
 	m_inputSpeed -= ((m_inputSpeed - 0) / 400)*(float)m_dt;
 	m_playerScale -= ((m_playerScale - 1.0f)/100)*(float)m_dt;//player scale
-	m_hitColour -= ((m_hitColour- 0)/400)*(float)m_dt;
 	
+	m_hitColour -= ((m_hitColour- 0)/400)*(float)m_dt;
+
 
 	}
 	else {
-		
+
 		if (m_hitWait > 0) {
 			m_hitWait -= 1 * (int)m_dt;
 		}
@@ -962,13 +1039,46 @@ void Game::RailCam(int _type) {
 		m_pCamera->Set(m_currentPlayerPos+b*10.0f, m_currentPlayerPos, glm::vec3(0, 0, 1));
 	}
 	//----------------------------a little up on y axes
-	
+
 
 
 }
 
+void Game::FogToggle() {
+
+	if (m_fogActive) {
+		m_fogDist -= (m_fogDist - m_fogDistMin) / 500 * (float)m_dt;
+	}
+	else {
+		m_fogDist -= (m_fogDist - m_fogDistMax) / 500 * (float)m_dt;
+	}
+
+}
+
+void Game::DayNightSystem() {
+	if (m_dayTime) {
+		//turn on global
+		m_globalLight -= ((m_globalLight - 1.0f) / 500)*(float)m_dt;
+		//spotlight 1 off
+		m_colour1 -= ((m_colour1 - glm::vec3(0.0f)) / glm::vec3(500))*(float)m_dt;
+		m_colour2 -= ((m_colour2 - glm::vec3(0.0f)) / glm::vec3(500))*(float)m_dt;
+		//fog ->day
+		m_fogColour -=((m_fogColour-m_fogDayColour) / glm::vec3(500))*(float)m_dt;
+	}
+	else {
+		//turn off global
+		m_globalLight -= ((m_globalLight - 0.2f) / 500)*(float)m_dt;
+		//spotlight 1 on
+		m_colour1 -= ((m_colour1 - glm::vec3(0.0f, 0.8f, 0.8f)) / glm::vec3(500))*(float)m_dt;
+		m_colour2 -= ((m_colour2 - glm::vec3(0.5f, 0.9, 0.5f)) / glm::vec3(500))*(float)m_dt;
+		//fog ->night
+		m_fogColour -= ((m_fogColour - m_fogNightColour) / glm::vec3(500))*(float)m_dt;
+	}
 
 
+	
+
+}
 
 // Update method runs repeatedly with the Render method
 void Game::Update()
@@ -979,6 +1089,11 @@ void Game::Update()
 	m_camViewType == 3 ? Cam1() : RailCam(m_camViewType);
 
 	m_pAudio->Update();
+
+	FogToggle();
+	DayNightSystem();
+
+
 }
 
 
@@ -1131,20 +1246,25 @@ LRESULT Game::ProcessEvents(HWND window,UINT message, WPARAM w_param, LPARAM l_p
 		case '4':
 			m_camViewType = 3;
 			break;
+		case '5':
+			m_dayTime = !m_dayTime;
+			break;
+		case '6':
+			m_fogActive = !m_fogActive;
+			break;
 		case 0x45://E
 			hit();
 			break;
 		case ' ':
 			if (m_limitInput)break;
 			m_inputSpeed = 0.05f;
-			//m_playerScale = 1.3f;
 			m_playerScale = 0.6f;
 			m_limitInput = true;
-			
+
 			break;
 		case '9':
 			m_pAudio->PlayEventSound();
-			
+
 			break;
 		case VK_F1:
 			m_pAudio->PlayEventSound();
